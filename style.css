@@ -425,8 +425,11 @@ body {
 }
 
 .col-content .cell-text-view {
+  display: block;
   white-space: pre-wrap;
   word-break: break-word;
+  text-align: left;
+  line-height: 1.5;
 }
 
 .table-select {

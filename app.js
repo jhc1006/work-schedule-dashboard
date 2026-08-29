@@ -403,11 +403,7 @@ function renderTable() {
       <td class="col-content">
         ${isEditingContent ? `
           <textarea class="table-textarea edit-control field-content" data-id="${item.id}" data-field="content" rows="3" placeholder="작업 상세 내용을 입력하세요...">${escapeHtml(item.content)}</textarea>
-        ` : `
-          <div class="cell-text-view" data-id="${item.id}" data-field="content">
-            ${escapeHtml(item.content) || '<span class="text-placeholder">작업 상세 내용 입력...</span>'}
-          </div>
-        `}
+        ` : `<div class="cell-text-view" data-id="${item.id}" data-field="content">${escapeHtml(item.content) || '<span class="text-placeholder">작업 상세 내용 입력...</span>'}</div>`}
       </td>
 
       <!-- Action Cell -->
