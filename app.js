@@ -2,14 +2,35 @@
 // Work Schedule Application Data & State
 // ==========================================================================
 
-const UT_EQUIPMENT_LIST = [
-  { id: 'UT-VAC-101', name: '진공펌프 1호기 (Main Vacuum Pump)' },
-  { id: 'UT-CHL-204', name: '칠러 Unit-A (Cooling Chiller)' },
-  { id: 'UT-SCR-302', name: '배기 스크러버 #2 (Gas Scrubber)' },
-  { id: 'UT-UPW-105', name: '초순수 공급기 (UPW Supply Unit)' },
-  { id: 'UT-AHU-401', name: '클린룸 공조기 (AHU-3)' },
-  { id: 'UT-GAS-503', name: '특수가스 공급 밸브 (N2/Ar Valve Box)' },
-  { id: 'UT-CMP-601', name: '에어 컴프레셔 (Air Compressor #1)' }
+const TARGET_CATEGORY_MAP = {
+  EQUIPMENT: [
+    { id: 'UT-VAC-101', name: '진공펌프 1호기 (Main Vacuum Pump)', category: '설비' },
+    { id: 'UT-CHL-204', name: '칠러 Unit-A (Cooling Chiller)', category: '설비' },
+    { id: 'UT-SCR-302', name: '배기 스크러버 #2 (Gas Scrubber)', category: '설비' },
+    { id: 'UT-UPW-105', name: '초순수 공급기 (UPW Supply Unit)', category: '설비' },
+    { id: 'UT-AHU-401', name: '클린룸 공조기 (AHU-3)', category: '설비' },
+    { id: 'UT-GAS-503', name: '특수가스 공급 밸브 (N2/Ar Valve Box)', category: '설비' },
+    { id: 'UT-CMP-601', name: '에어 컴프레셔 (Air Compressor #1)', category: '설비' }
+  ],
+  MATERIAL: [
+    { id: 'MAT-WAF-301', name: '300mm Silicon Wafer Lot #B42', category: '자재입출고' },
+    { id: 'MAT-SLU-002', name: 'CMP Slurry Chemical Drum (500L)', category: '자재입출고' },
+    { id: 'MAT-TAR-005', name: 'Cu/Al Sputter Target Module', category: '자재입출고' },
+    { id: 'MAT-GAS-CYL', name: 'HBr/NF3 Special Gas Cylinder', category: '자재입출고' },
+    { id: 'MAT-PAD-102', name: 'CMP Polishing Pad Unit-4', category: '자재입출고' },
+    { id: 'MAT-FLT-008', name: 'POU Chemical Filter Replacement Kit', category: '자재입출고' }
+  ],
+  FACILITY: [
+    { id: 'FAC-CLN-001', name: 'Class 1 Cleanroom Zone-A', category: '시설/인프라' },
+    { id: 'FAC-PWR-002', name: 'Main Substation UPS Backup System', category: '시설/인프라' },
+    { id: 'FAC-DRN-003', name: 'Industrial Acid Waste Drain Line', category: '시설/인프라' }
+  ]
+};
+
+const ALL_TARGET_ITEMS = [
+  ...TARGET_CATEGORY_MAP.EQUIPMENT,
+  ...TARGET_CATEGORY_MAP.MATERIAL,
+  ...TARGET_CATEGORY_MAP.FACILITY
 ];
 
 const INITIAL_SCHEDULE_DATA = [
@@ -26,10 +47,10 @@ const INITIAL_SCHEDULE_DATA = [
     id: 'row-2',
     site: '이천',
     fab: 'M16',
-    type: 'BM',
-    subcat: '긴급 조치',
-    utIds: ['UT-CHL-204', 'UT-CMP-601'],
-    content: '냉매 순환 펌프 이상 진동 감지 및 커플링 교체'
+    type: '자재입출고',
+    subcat: '원자재 입고',
+    utIds: ['MAT-WAF-301', 'MAT-SLU-002'],
+    content: '신규 웨이퍼 Lot 및 CMP 슬러리 케미컬 입고 검수 및 창고 적재'
   },
   {
     id: 'row-3',
@@ -53,20 +74,23 @@ const INITIAL_SCHEDULE_DATA = [
     id: 'row-5',
     site: '청주',
     fab: 'M15',
-    type: '점검',
-    subcat: '일상 순회',
-    utIds: ['UT-UPW-105', 'UT-GAS-503'],
-    content: '공급 배관 밸브 리크 육안 검사 및 비저항치 모니터링'
+    type: '자재입출고',
+    subcat: '부품 출하',
+    utIds: ['MAT-FLT-008'],
+    content: '라인 교체용 Chemical Filter 부품 출고 불출 처리'
   }
 ];
 
-const STORAGE_KEY = 'SK_WORK_SCHEDULE_DATA_V3';
+const STORAGE_KEY = 'SK_WORK_SCHEDULE_DATA_V4';
 
 let schedules = [];
 let selectedRowIds = new Set();
 
-// Tracks currently active editing cell: { rowId: string, field: string } | null
+// Tracks active editing cell: { rowId: string, field: string }
 let editingCell = null;
+
+// Track active category tab per row dropdown: { [rowId]: categoryName }
+let rowCategoryTabs = {};
 
 // ==========================================================================
 // Initialization
@@ -102,8 +126,21 @@ function saveData() {
 }
 
 // ==========================================================================
-// Text Mode Badges & Helpers
+// Category & Target Helper Functions
 // ==========================================================================
+
+function getRecommendedCategory(type, subcat) {
+  const t = (type || '').toLowerCase();
+  const s = (subcat || '').toLowerCase();
+
+  if (t.includes('자재') || s.includes('자재') || s.includes('입출고') || s.includes('부품') || s.includes('입고') || s.includes('출고')) {
+    return '자재입출고';
+  }
+  if (t.includes('시설') || s.includes('시설') || s.includes('인프라')) {
+    return '시설/인프라';
+  }
+  return '설비';
+}
 
 function getWorkTypeBadge(type) {
   switch (type) {
@@ -113,6 +150,8 @@ function getWorkTypeBadge(type) {
       return '<span class="badge badge-bm">BM (고장보전)</span>';
     case 'CM':
       return '<span class="badge badge-cm">CM (개량보전)</span>';
+    case '자재입출고':
+      return '<span class="badge badge-purple" style="background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe;">자재입출고</span>';
     default:
       return `<span class="badge badge-inspection">${escapeHtml(type)}</span>`;
   }
@@ -120,31 +159,34 @@ function getWorkTypeBadge(type) {
 
 function renderUtBadges(selectedIds = []) {
   if (!selectedIds || selectedIds.length === 0) {
-    return '<span class="text-placeholder">+ 설비(UT ID) 선택</span>';
+    return '<span class="text-placeholder">+ 작업대상 선택</span>';
   }
 
   return selectedIds.map(id => {
-    const equip = UT_EQUIPMENT_LIST.find(e => e.id === id);
-    const name = equip ? equip.name.split(' (')[0] : id;
+    const item = ALL_TARGET_ITEMS.find(e => e.id === id);
+    const name = item ? item.name.split(' (')[0] : id;
+    const isMaterial = item && item.category === '자재입출고';
     return `
-      <span class="ut-chip">
-        <span class="ut-chip-id">${id}</span>
+      <span class="ut-chip" style="${isMaterial ? 'background:#faf5ff; border-color:#e9d5ff;' : ''}">
+        <span class="ut-chip-id" style="${isMaterial ? 'background:#f3e8ff; color:#7e22ce;' : ''}">${id}</span>
         <span>${escapeHtml(name)}</span>
       </span>
     `;
   }).join('');
 }
 
-// ==========================================================================
-// Custom Dropdown Helper Functions
-// ==========================================================================
+function getSortedUtOptions(selectedIds = [], categoryFilter = '전체', keyword = '') {
+  let list = [...ALL_TARGET_ITEMS];
 
-function getSortedUtOptions(selectedIds = [], keyword = '') {
-  let list = [...UT_EQUIPMENT_LIST];
+  if (categoryFilter && categoryFilter !== '전체') {
+    list = list.filter(item => item.category === categoryFilter);
+  }
+
   if (keyword) {
     const kw = keyword.toLowerCase();
     list = list.filter(item => item.name.toLowerCase().includes(kw) || item.id.toLowerCase().includes(kw));
   }
+
   return list.sort((a, b) => {
     const aChecked = selectedIds.includes(a.id);
     const bChecked = selectedIds.includes(b.id);
@@ -156,11 +198,11 @@ function getSortedUtOptions(selectedIds = [], keyword = '') {
 
 function getUtTriggerText(selectedIds = []) {
   if (!selectedIds || selectedIds.length === 0) {
-    return '<span style="color: var(--text-light);">-- 설비명 선택 --</span>';
+    return '<span style="color: var(--text-light);">-- 작업대상 선택 --</span>';
   }
   const firstId = selectedIds[0];
-  const equip = UT_EQUIPMENT_LIST.find(e => e.id === firstId);
-  const firstName = equip ? equip.name.split(' (')[0] : firstId;
+  const item = ALL_TARGET_ITEMS.find(e => e.id === firstId);
+  const firstName = item ? item.name.split(' (')[0] : firstId;
 
   if (selectedIds.length === 1) {
     return firstName;
@@ -168,9 +210,16 @@ function getUtTriggerText(selectedIds = []) {
   return `${firstName} 외 ${selectedIds.length - 1}건`;
 }
 
-function createUtDropdownHtml(rowId, selectedIds) {
+function createUtDropdownHtml(rowId, selectedIds, currentType, currentSubcat) {
   const triggerText = getUtTriggerText(selectedIds);
-  const sortedOptions = getSortedUtOptions(selectedIds);
+
+  // Set default recommended category tab if not set
+  if (!rowCategoryTabs[rowId]) {
+    rowCategoryTabs[rowId] = getRecommendedCategory(currentType, currentSubcat);
+  }
+
+  const activeCategory = rowCategoryTabs[rowId];
+  const sortedOptions = getSortedUtOptions(selectedIds, activeCategory);
 
   const optionsHtml = sortedOptions.map(e => {
     const isChecked = selectedIds.includes(e.id);
@@ -183,6 +232,13 @@ function createUtDropdownHtml(rowId, selectedIds) {
     `;
   }).join('');
 
+  const categories = ['설비', '자재입출고', '시설/인프라', '전체'];
+  const tabsHtml = categories.map(cat => `
+    <button type="button" class="ut-tab-btn ${cat === activeCategory ? 'active' : ''}" data-row-id="${rowId}" data-cat="${cat}">
+      ${cat}
+    </button>
+  `).join('');
+
   return `
     <div class="custom-ut-dropdown" data-id="${rowId}">
       <button type="button" class="ut-dropdown-trigger open" data-id="${rowId}">
@@ -194,7 +250,10 @@ function createUtDropdownHtml(rowId, selectedIds) {
 
       <div class="ut-dropdown-menu" id="utMenu-${rowId}">
         <div class="ut-search-wrapper">
-          <input type="text" class="ut-search-input" data-id="${rowId}" placeholder="설비명 / ID 검색..." autocomplete="off">
+          <div class="ut-category-tabs">
+            ${tabsHtml}
+          </div>
+          <input type="text" class="ut-search-input" data-id="${rowId}" placeholder="작업대상(설비/자재/시설) 검색..." autocomplete="off">
         </div>
         <div class="ut-options-list" id="utList-${rowId}">
           ${optionsHtml}
@@ -218,7 +277,6 @@ function renderTable() {
   const filterSite = document.getElementById('filterSite').value;
   const filterType = document.getElementById('filterType').value;
 
-  // Filter items
   const filtered = schedules.filter(item => {
     if (filterSite && item.site !== filterSite) return false;
     if (filterType && item.type !== filterType) return false;
@@ -229,12 +287,12 @@ function renderTable() {
       const matchSubcat = item.subcat.toLowerCase().includes(searchKeyword);
       const matchContent = item.content.toLowerCase().includes(searchKeyword);
       
-      const matchUt = (item.utIds || []).some(utId => {
-        const equip = UT_EQUIPMENT_LIST.find(e => e.id === utId);
-        return equip ? equip.name.toLowerCase().includes(searchKeyword) || equip.id.toLowerCase().includes(searchKeyword) : false;
+      const matchTarget = (item.utIds || []).some(utId => {
+        const targetItem = ALL_TARGET_ITEMS.find(e => e.id === utId);
+        return targetItem ? targetItem.name.toLowerCase().includes(searchKeyword) || targetItem.id.toLowerCase().includes(searchKeyword) : false;
       });
 
-      if (!matchSite && !matchFab && !matchType && !matchSubcat && !matchContent && !matchUt) {
+      if (!matchSite && !matchFab && !matchType && !matchSubcat && !matchContent && !matchTarget) {
         return false;
       }
     }
@@ -263,7 +321,6 @@ function renderTable() {
     tr.dataset.id = item.id;
     const isChecked = selectedRowIds.has(item.id);
 
-    // Check which cell is currently being edited in this row
     const isEditingSite = editingCell && editingCell.rowId === item.id && editingCell.field === 'site';
     const isEditingFab = editingCell && editingCell.rowId === item.id && editingCell.field === 'fab';
     const isEditingType = editingCell && editingCell.rowId === item.id && editingCell.field === 'type';
@@ -310,6 +367,7 @@ function renderTable() {
             <option value="PM" ${item.type === 'PM' ? 'selected' : ''}>PM (예방보전)</option>
             <option value="BM" ${item.type === 'BM' ? 'selected' : ''}>BM (고장보전)</option>
             <option value="CM" ${item.type === 'CM' ? 'selected' : ''}>CM (개량보전)</option>
+            <option value="자재입출고" ${item.type === '자재입출고' ? 'selected' : ''}>자재입출고</option>
             <option value="점검" ${item.type === '점검' ? 'selected' : ''}>정기 점검</option>
           </select>
         ` : `
@@ -330,10 +388,10 @@ function renderTable() {
         `}
       </td>
 
-      <!-- UT ID Cell -->
+      <!-- 작업대상 Cell -->
       <td class="col-utid">
         ${isEditingUt ? `
-          ${createUtDropdownHtml(item.id, item.utIds || [])}
+          ${createUtDropdownHtml(item.id, item.utIds || [], item.type, item.subcat)}
         ` : `
           <div class="cell-text-view ut-badge-container" data-id="${item.id}" data-field="utIds">
             ${renderUtBadges(item.utIds)}
@@ -364,7 +422,6 @@ function renderTable() {
     tbody.appendChild(tr);
   });
 
-  // Focus control if editing
   if (editingCell) {
     setTimeout(() => {
       if (editingCell.field === 'utIds') {
@@ -396,7 +453,7 @@ function updateStats(filteredCount = schedules.length) {
 }
 
 // ==========================================================================
-// Custom UT ID Dropdown Interactivity
+// Custom Target Dropdown Interactivity
 // ==========================================================================
 
 function updateUtOptionsList(rowId, keyword = '') {
@@ -406,8 +463,9 @@ function updateUtOptionsList(rowId, keyword = '') {
   const listContainer = document.getElementById(`utList-${rowId}`);
   if (!listContainer) return;
 
+  const activeCategory = rowCategoryTabs[rowId] || '설비';
   const selectedIds = row.utIds || [];
-  const sortedOptions = getSortedUtOptions(selectedIds, keyword);
+  const sortedOptions = getSortedUtOptions(selectedIds, activeCategory, keyword);
 
   listContainer.innerHTML = sortedOptions.map(e => {
     const isChecked = selectedIds.includes(e.id);
@@ -436,7 +494,6 @@ function toggleUtItemSelection(rowId, utId) {
 
   saveData();
 
-  // Re-render trigger text and sorted options
   const triggerTextEl = document.querySelector(`.custom-ut-dropdown[data-id="${rowId}"] .ut-trigger-text`);
   if (triggerTextEl) {
     triggerTextEl.innerHTML = getUtTriggerText(row.utIds);
@@ -448,11 +505,10 @@ function toggleUtItemSelection(rowId, utId) {
 }
 
 // ==========================================================================
-// Event Listeners & Cell Mode Switching
+// Event Listeners & Mode Switching
 // ==========================================================================
 
 function initEventListeners() {
-  // Search & Filters
   document.getElementById('searchInput').addEventListener('input', () => {
     editingCell = null;
     renderTable();
@@ -466,11 +522,9 @@ function initEventListeners() {
     renderTable();
   });
 
-  // Global Outside Click listener to close cell editing
   document.addEventListener('click', (e) => {
     if (!editingCell) return;
 
-    // Check if click was inside current editing cell or custom UT menu
     const insideCellView = e.target.closest(`.cell-text-view[data-id="${editingCell.rowId}"][data-field="${editingCell.field}"]`);
     const insideEditControl = e.target.closest(`.edit-control[data-id="${editingCell.rowId}"]`);
     const insideUtDropdown = e.target.closest(`.custom-ut-dropdown[data-id="${editingCell.rowId}"]`);
@@ -482,20 +536,47 @@ function initEventListeners() {
 
   const tbody = document.getElementById('scheduleTableBody');
 
-  // Cell Click -> Switch to Edit Mode
   tbody.addEventListener('click', (e) => {
-    // 1. Text View Cell Clicked
+    // 1. Category Tab Click inside Dropdown
+    const tabBtn = e.target.closest('.ut-tab-btn');
+    if (tabBtn) {
+      e.stopPropagation();
+      const rowId = tabBtn.dataset.rowId;
+      const cat = tabBtn.dataset.cat;
+      rowCategoryTabs[rowId] = cat;
+
+      // Highlight active tab
+      const menu = document.getElementById(`utMenu-${rowId}`);
+      if (menu) {
+        menu.querySelectorAll('.ut-tab-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.cat === cat);
+        });
+      }
+
+      const searchInput = menu ? menu.querySelector('.ut-search-input') : null;
+      const kw = searchInput ? searchInput.value.trim() : '';
+      updateUtOptionsList(rowId, kw);
+      return;
+    }
+
+    // 2. Text View Cell Clicked
     const cellView = e.target.closest('.cell-text-view');
     if (cellView) {
       e.stopPropagation();
       const rowId = cellView.dataset.id;
       const field = cellView.dataset.field;
+
+      const row = schedules.find(r => r.id === rowId);
+      if (row) {
+        rowCategoryTabs[rowId] = getRecommendedCategory(row.type, row.subcat);
+      }
+
       editingCell = { rowId, field };
       renderTable();
       return;
     }
 
-    // 2. UT ID Option Item Clicked inside dropdown
+    // 3. Target Option Item Clicked
     const optionItem = e.target.closest('.ut-option-item');
     if (optionItem) {
       e.stopPropagation();
@@ -505,21 +586,24 @@ function initEventListeners() {
       return;
     }
 
-    // 3. Select All Button in Dropdown Footer
+    // 4. Select All Button
     const btnAll = e.target.closest('.btn-ut-all');
     if (btnAll) {
       e.stopPropagation();
       const rowId = btnAll.dataset.id;
       const row = schedules.find(r => r.id === rowId);
       if (row) {
-        row.utIds = UT_EQUIPMENT_LIST.map(item => item.id);
+        const activeCat = rowCategoryTabs[rowId] || '설비';
+        const currentCatItems = getSortedUtOptions([], activeCat).map(i => i.id);
+        
+        row.utIds = Array.from(new Set([...(row.utIds || []), ...currentCatItems]));
         saveData();
         updateUtOptionsList(rowId);
       }
       return;
     }
 
-    // 4. Clear Selection Button in Dropdown Footer
+    // 5. Clear Selection Button
     const btnClear = e.target.closest('.btn-ut-clear');
     if (btnClear) {
       e.stopPropagation();
@@ -533,7 +617,7 @@ function initEventListeners() {
       return;
     }
 
-    // 5. Delete Button
+    // 6. Delete Button
     const btnDelete = e.target.closest('.btn-icon-delete');
     if (btnDelete) {
       const rowId = btnDelete.dataset.id;
@@ -542,7 +626,7 @@ function initEventListeners() {
     }
   });
 
-  // Search input inside UT Dropdown
+  // Search input inside Target Dropdown
   tbody.addEventListener('input', (e) => {
     if (e.target.classList.contains('ut-search-input')) {
       const rowId = e.target.dataset.id;
@@ -550,7 +634,6 @@ function initEventListeners() {
     }
   });
 
-  // Commit changes on Select Change or Input Enter key
   tbody.addEventListener('change', (e) => {
     const target = e.target;
 
@@ -571,7 +654,11 @@ function initEventListeners() {
       commitCellEditing('사이트가 변경되었습니다.');
     } else if (target.classList.contains('field-type')) {
       const row = schedules.find(r => r.id === target.dataset.id);
-      if (row) row.type = target.value;
+      if (row) {
+        row.type = target.value;
+        // Automatically switch target category recommendation on type change
+        rowCategoryTabs[row.id] = getRecommendedCategory(row.type, row.subcat);
+      }
       commitCellEditing('작업유형이 변경되었습니다.');
     }
   });
@@ -580,7 +667,6 @@ function initEventListeners() {
     if (e.key === 'Enter') {
       const targetTag = e.target.tagName ? e.target.tagName.toLowerCase() : '';
       if (targetTag === 'textarea') {
-        // textarea에서는 Enter 누르면 일반 줄바꿈(포커스 유지), 이벤트 전파 중지로 상위 이탈 방지
         e.stopPropagation();
         return;
       }
@@ -595,7 +681,6 @@ function initEventListeners() {
     }
   });
 
-  // Select All Checkbox
   document.getElementById('selectAll').addEventListener('change', (e) => {
     if (e.target.checked) {
       schedules.forEach(item => selectedRowIds.add(item.id));
@@ -605,7 +690,6 @@ function initEventListeners() {
     renderTable();
   });
 
-  // Action Buttons
   document.getElementById('btnAddRow').addEventListener('click', () => {
     openModal();
   });
@@ -627,6 +711,7 @@ function initEventListeners() {
       schedules = [...INITIAL_SCHEDULE_DATA];
       selectedRowIds.clear();
       editingCell = null;
+      rowCategoryTabs = {};
       saveData();
       renderTable();
       showToast('초기 데이터로 복원되었습니다.');
@@ -646,7 +731,11 @@ function commitCellEditing(toastMsg = null) {
     const control = document.querySelector(`.edit-control[data-id="${rowId}"][data-field="${field}"]`);
     if (control) {
       if (field === 'fab') row.fab = control.value.trim();
-      else if (field === 'subcat') row.subcat = control.value.trim();
+      else if (field === 'subcat') {
+        row.subcat = control.value.trim();
+        // Update recommended category
+        rowCategoryTabs[rowId] = getRecommendedCategory(row.type, row.subcat);
+      }
       else if (field === 'content') row.content = control.value.trim();
     }
     saveData();
@@ -675,7 +764,6 @@ function quickAddRow() {
   schedules.unshift(newRow);
   saveData();
 
-  // Set the new row's content field into edit mode automatically
   editingCell = { rowId: newRow.id, field: 'content' };
   renderTable();
   showToast('새로운 작업 행이 추가되었습니다.');
@@ -717,7 +805,7 @@ function setupModal() {
   const form = document.getElementById('addRowForm');
 
   const utSelect = document.getElementById('modalUtId');
-  utSelect.innerHTML = UT_EQUIPMENT_LIST.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+  utSelect.innerHTML = ALL_TARGET_ITEMS.map(e => `<option value="${e.id}">[${e.category}] ${e.name}</option>`).join('');
 
   const close = () => {
     overlay.classList.remove('active');
@@ -768,11 +856,11 @@ function exportToCsv() {
     return;
   }
 
-  const headers = ['Site', 'FAB', '작업유형', '작업구분', 'UT ID 목록', '설비명 목록', '작업 내용'];
+  const headers = ['Site', 'FAB', '작업유형', '작업구분', '작업대상 ID 목록', '작업대상 항목 목록', '작업 내용'];
   const rows = schedules.map(item => {
     const utIdsStr = (item.utIds || []).join('; ');
     const equipNames = (item.utIds || []).map(id => {
-      const equip = UT_EQUIPMENT_LIST.find(e => e.id === id);
+      const equip = ALL_TARGET_ITEMS.find(e => e.id === id);
       return equip ? equip.name : id;
     }).join('; ');
 
