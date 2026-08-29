@@ -578,11 +578,10 @@ function initEventListeners() {
 
   tbody.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
+      // textarea에서는 Enter 누르면 일반 줄바꿈(포커스 유지), 탈출/저장은 바깥 클릭이나 Escape로 처리
       if (e.target.tagName.toLowerCase() === 'textarea') {
-        if (!e.shiftKey) {
-          e.preventDefault();
-          commitCellEditing();
-        }
+        // Do not prevent default, allow standard newline in textarea without losing focus
+        return;
       } else if (e.target.classList.contains('edit-control')) {
         e.preventDefault();
         commitCellEditing();
