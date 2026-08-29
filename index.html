@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>작업 일정 관리 대시보드 | 설비 및 자재 작업 스케줄</title>
-  <meta name="description" content="반도체 및 유틸리티 설비/자재 작업 일정(Site, FAB, 작업유형, 작업구분, 작업대상, 작업 내용) 관리 시스템">
+  <title>작업 일정 관리 대시보드 | 종합 시설 및 물류 스케줄</title>
+  <meta name="description" content="종합 빌딩 시설, 물류 입출고 및 인프라 점검/작업 일정(Site, 구역, 작업유형, 작업구분, 작업대상, 작업 내용) 통합 관리 시스템">
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -17,7 +17,7 @@
           작업 일정 관리
           <span class="badge-count" id="visibleCount">0</span>
         </h1>
-        <p>현장 설비, 자재입출고 및 시설 점검/작업 내역을 통합 관리합니다.</p>
+        <p>사업장별 시설 설비, 자재입출고 및 인프라 점검/작업 내역을 통합 관리합니다.</p>
       </div>
 
       <div class="action-group">
@@ -47,24 +47,24 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
-          <input type="search" id="searchInput" placeholder="작업대상, 내용, FAB 검색..." aria-label="검색어 입력">
+          <input type="search" id="searchInput" placeholder="작업대상, 내용, 구역 검색..." aria-label="검색어 입력">
         </div>
 
         <!-- Site Filter -->
         <select id="filterSite" class="filter-select" aria-label="Site 필터">
           <option value="">모든 Site</option>
-          <option value="이천">이천</option>
-          <option value="청주">청주</option>
-          <option value="용인">용인</option>
-          <option value="화성">화성</option>
+          <option value="서울본사">서울본사</option>
+          <option value="판교센터">판교센터</option>
+          <option value="부산센터">부산센터</option>
+          <option value="대구센터">대구센터</option>
         </select>
 
         <!-- Work Type Filter -->
         <select id="filterType" class="filter-select" aria-label="작업유형 필터">
           <option value="">모든 작업유형</option>
           <option value="PM">PM (예방보전)</option>
-          <option value="BM">BM (고장보전)</option>
-          <option value="CM">CM (개량보전)</option>
+          <option value="BM">BM (고장수리)</option>
+          <option value="CM">CM (시설개선)</option>
           <option value="자재입출고">자재입출고</option>
           <option value="점검">정기 점검</option>
         </select>
@@ -90,7 +90,7 @@
                 <input type="checkbox" id="selectAll" aria-label="전체 행 선택">
               </th>
               <th class="col-site">Site</th>
-              <th class="col-fab">FAB</th>
+              <th class="col-fab">구역/Zone</th>
               <th class="col-type">작업유형</th>
               <th class="col-subcat">작업구분</th>
               <th class="col-utid">작업대상</th>
@@ -128,22 +128,22 @@
           <div class="modal-field">
             <label for="modalSite">Site</label>
             <select id="modalSite" required>
-              <option value="이천" selected>이천</option>
-              <option value="청주">청주</option>
-              <option value="용인">용인</option>
-              <option value="화성">화성</option>
+              <option value="서울본사" selected>서울본사</option>
+              <option value="판교센터">판교센터</option>
+              <option value="부산센터">부산센터</option>
+              <option value="대구센터">대구센터</option>
             </select>
           </div>
           <div class="modal-field">
-            <label for="modalFab">FAB</label>
-            <input type="text" id="modalFab" value="M15" placeholder="예: M15, M16" required>
+            <label for="modalFab">구역/Zone</label>
+            <input type="text" id="modalFab" value="A동 1층" placeholder="예: A동 1층, 물류존" required>
           </div>
           <div class="modal-field">
             <label for="modalType">작업유형</label>
             <select id="modalType" required>
               <option value="PM" selected>PM (예방보전)</option>
-              <option value="BM">BM (고장보전)</option>
-              <option value="CM">CM (개량보전)</option>
+              <option value="BM">BM (고장수리)</option>
+              <option value="CM">CM (시설개선)</option>
               <option value="자재입출고">자재입출고</option>
               <option value="점검">정기 점검</option>
             </select>
@@ -173,6 +173,6 @@
   </div>
 
   <!-- JavaScript -->
-  <script src="./app.js?v=20260830_5"></script>
+  <script src="./app.js?v=20260830_6"></script>
 </body>
 </html>

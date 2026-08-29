@@ -1,29 +1,29 @@
 // ==========================================================================
-// Work Schedule Application Data & State
+// Work Schedule Application Data & State (General Facility & Logistics Domain)
 // ==========================================================================
 
 const TARGET_CATEGORY_MAP = {
   EQUIPMENT: [
-    { id: 'UT-VAC-101', name: '진공펌프 1호기 (Main Vacuum Pump)', category: '설비' },
-    { id: 'UT-CHL-204', name: '칠러 Unit-A (Cooling Chiller)', category: '설비' },
-    { id: 'UT-SCR-302', name: '배기 스크러버 #2 (Gas Scrubber)', category: '설비' },
-    { id: 'UT-UPW-105', name: '초순수 공급기 (UPW Supply Unit)', category: '설비' },
-    { id: 'UT-AHU-401', name: '클린룸 공조기 (AHU-3)', category: '설비' },
-    { id: 'UT-GAS-503', name: '특수가스 공급 밸브 (N2/Ar Valve Box)', category: '설비' },
-    { id: 'UT-CMP-601', name: '에어 컴프레셔 (Air Compressor #1)', category: '설비' }
+    { id: 'EQ-HVAC-101', name: '중앙 냉난방 공조기 1호기 (Main HVAC System)', category: '설비' },
+    { id: 'EQ-ELEV-204', name: '화물/승객용 엘리베이터 B동 (Freight Elevator)', category: '설비' },
+    { id: 'EQ-CONV-302', name: '물류 이송 컨베이어 라인 #2 (Conveyor Line)', category: '설비' },
+    { id: 'EQ-GEN-105', name: '비상 자가발전기 세트 (300kW Backup Power)', category: '설비' },
+    { id: 'EQ-PUMP-401', name: '메인 급수 부스터 펌프 (Water Booster Pump)', category: '설비' },
+    { id: 'EQ-SOLAR-503', name: '옥상 태양광 발전 인버터 (Solar Inverter)', category: '설비' },
+    { id: 'EQ-COMP-601', name: '산업용 에어 컴프레셔 (Air Compressor #1)', category: '설비' }
   ],
   MATERIAL: [
-    { id: 'MAT-WAF-301', name: '300mm Silicon Wafer Lot #B42', category: '자재입출고' },
-    { id: 'MAT-SLU-002', name: 'CMP Slurry Chemical Drum (500L)', category: '자재입출고' },
-    { id: 'MAT-TAR-005', name: 'Cu/Al Sputter Target Module', category: '자재입출고' },
-    { id: 'MAT-GAS-CYL', name: 'HBr/NF3 Special Gas Cylinder', category: '자재입출고' },
-    { id: 'MAT-PAD-102', name: 'CMP Polishing Pad Unit-4', category: '자재입출고' },
-    { id: 'MAT-FLT-008', name: 'POU Chemical Filter Replacement Kit', category: '자재입출고' }
+    { id: 'MAT-BOX-301', name: '표준 물류 포장 박스 세트 (Lot #B42)', category: '자재입출고' },
+    { id: 'MAT-PAL-002', name: '플라스틱 표준 파렛트 (1100x1100mm)', category: '자재입출고' },
+    { id: 'MAT-TAP-005', name: '포장용 테이프 및 완충재 묶음', category: '자재입출고' },
+    { id: 'MAT-LUB-001', name: '산업용 기계 윤활유 드럼 (200L)', category: '자재입출고' },
+    { id: 'MAT-LED-102', name: '고효율 LED 조명 교체용 모듈', category: '자재입출고' },
+    { id: 'MAT-FLT-008', name: '공조기 헤파/프리 필터 Replacement Kit', category: '자재입출고' }
   ],
   FACILITY: [
-    { id: 'FAC-CLN-001', name: 'Class 1 Cleanroom Zone-A', category: '시설/인프라' },
-    { id: 'FAC-PWR-002', name: 'Main Substation UPS Backup System', category: '시설/인프라' },
-    { id: 'FAC-DRN-003', name: 'Industrial Acid Waste Drain Line', category: '시설/인프라' }
+    { id: 'FAC-PARK-001', name: '지하 주차장 무인 차단기 정산 시스템', category: '시설/인프라' },
+    { id: 'FAC-FIRE-002', name: '메인 소방 수신기 및 스프링클러 배관', category: '시설/인프라' },
+    { id: 'FAC-NET-003', name: 'MDF 통신실 메인 네트워크 스위치 랙', category: '시설/인프라' }
   ]
 };
 
@@ -36,52 +36,52 @@ const ALL_TARGET_ITEMS = [
 const INITIAL_SCHEDULE_DATA = [
   {
     id: 'row-1',
-    site: '이천',
-    fab: 'M15',
+    site: '서울본사',
+    fab: 'A동 3층',
     type: 'PM',
     subcat: '정기 점검',
-    utIds: ['UT-VAC-101'],
-    content: '주 분기 정기 예방보전 점검 및 오일 레벨/압력 편차 계측'
+    utIds: ['EQ-HVAC-101'],
+    content: '분기 정기 공조기 필터 점검 및 냉매 압력 상태 계측'
   },
   {
     id: 'row-2',
-    site: '이천',
-    fab: 'M16',
+    site: '판교센터',
+    fab: '물류존 1',
     type: '자재입출고',
     subcat: '원자재 입고',
-    utIds: ['MAT-WAF-301', 'MAT-SLU-002'],
-    content: '신규 웨이퍼 Lot 및 CMP 슬러리 케미컬 입고 검수 및 창고 적재'
+    utIds: ['MAT-BOX-301', 'MAT-PAL-002'],
+    content: '신규 물류 표준 포장재 및 파렛트 입고 검수 및 창고 적재'
   },
   {
     id: 'row-3',
-    site: '청주',
-    fab: 'M14',
+    site: '부산센터',
+    fab: 'B동 1층',
     type: 'CM',
     subcat: '개선 개조',
-    utIds: ['UT-SCR-302'],
-    content: '배기 가스 세정 노즐 업그레이드 및 차압 센서 캘리브레이션'
+    utIds: ['EQ-CONV-302'],
+    content: '컨베이어 이송 벨트 모터 교체 및 속도 제어 인버터 튜닝'
   },
   {
     id: 'row-4',
-    site: '이천',
-    fab: 'M15',
+    site: '서울본사',
+    fab: '지하 2층',
     type: 'PM',
     subcat: '정기 점검',
-    utIds: ['UT-AHU-401'],
-    content: 'HEPA 필터 차압 확인 및 급기 송풍기 벨트 텐션 측정'
+    utIds: ['EQ-GEN-105'],
+    content: '비상 발전기 무부하 시운전 및 배터리 전압 점검'
   },
   {
     id: 'row-5',
-    site: '청주',
-    fab: 'M15',
+    site: '판교센터',
+    fab: '물류존 2',
     type: '자재입출고',
     subcat: '부품 출하',
     utIds: ['MAT-FLT-008'],
-    content: '라인 교체용 Chemical Filter 부품 출고 불출 처리'
+    content: '소모성 소모품 및 필터 모듈 출고 불출 처리'
   }
 ];
 
-const STORAGE_KEY = 'SK_WORK_SCHEDULE_DATA_V5';
+const STORAGE_KEY = 'SK_WORK_SCHEDULE_DATA_V6';
 
 let schedules = [];
 let selectedRowIds = new Set();
@@ -150,9 +150,9 @@ function getWorkTypeBadge(type) {
     case 'PM':
       return '<span class="badge badge-pm">PM (예방보전)</span>';
     case 'BM':
-      return '<span class="badge badge-bm">BM (고장보전)</span>';
+      return '<span class="badge badge-bm">BM (고장수리)</span>';
     case 'CM':
-      return '<span class="badge badge-cm">CM (개량보전)</span>';
+      return '<span class="badge badge-cm">CM (시설개선)</span>';
     case '자재입출고':
       return '<span class="badge badge-purple" style="background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe;">자재입출고</span>';
     default:
@@ -216,7 +216,6 @@ function getUtTriggerText(selectedIds = []) {
 function createUtDropdownHtml(rowId, selectedIds, currentType, currentSubcat) {
   const triggerText = getUtTriggerText(selectedIds);
 
-  // Automatically update recommended category tab whenever dropdown opens or renders
   rowCategoryTabs[rowId] = getRecommendedCategory(currentType, currentSubcat);
 
   const activeCategory = rowCategoryTabs[rowId];
@@ -338,10 +337,10 @@ function renderTable() {
       <td class="col-site">
         ${isEditingSite ? `
           <select class="table-select edit-control field-site" data-id="${item.id}" data-field="site">
-            <option value="이천" ${item.site === '이천' ? 'selected' : ''}>이천</option>
-            <option value="청주" ${item.site === '청주' ? 'selected' : ''}>청주</option>
-            <option value="용인" ${item.site === '용인' ? 'selected' : ''}>용인</option>
-            <option value="화성" ${item.site === '화성' ? 'selected' : ''}>화성</option>
+            <option value="서울본사" ${item.site === '서울본사' ? 'selected' : ''}>서울본사</option>
+            <option value="판교센터" ${item.site === '판교센터' ? 'selected' : ''}>판교센터</option>
+            <option value="부산센터" ${item.site === '부산센터' ? 'selected' : ''}>부산센터</option>
+            <option value="대구센터" ${item.site === '대구센터' ? 'selected' : ''}>대구센터</option>
           </select>
         ` : `
           <div class="cell-text-view" data-id="${item.id}" data-field="site">
@@ -350,10 +349,10 @@ function renderTable() {
         `}
       </td>
 
-      <!-- FAB Cell -->
+      <!-- 구역/Zone Cell -->
       <td class="col-fab">
         ${isEditingFab ? `
-          <input type="text" class="table-input edit-control field-fab" data-id="${item.id}" data-field="fab" value="${escapeHtml(item.fab)}" placeholder="FAB">
+          <input type="text" class="table-input edit-control field-fab" data-id="${item.id}" data-field="fab" value="${escapeHtml(item.fab)}" placeholder="구역/Zone">
         ` : `
           <div class="cell-text-view" data-id="${item.id}" data-field="fab">
             ${escapeHtml(item.fab) || '<span class="text-placeholder">입력</span>'}
@@ -367,8 +366,8 @@ function renderTable() {
           <select class="table-select edit-control field-type" data-id="${item.id}" data-field="type">
             <option value="" ${!item.type ? 'selected' : ''}>-- 선택 --</option>
             <option value="PM" ${item.type === 'PM' ? 'selected' : ''}>PM (예방보전)</option>
-            <option value="BM" ${item.type === 'BM' ? 'selected' : ''}>BM (고장보전)</option>
-            <option value="CM" ${item.type === 'CM' ? 'selected' : ''}>CM (개량보전)</option>
+            <option value="BM" ${item.type === 'BM' ? 'selected' : ''}>BM (고장수리)</option>
+            <option value="CM" ${item.type === 'CM' ? 'selected' : ''}>CM (시설개선)</option>
             <option value="자재입출고" ${item.type === '자재입출고' ? 'selected' : ''}>자재입출고</option>
             <option value="점검" ${item.type === '점검' ? 'selected' : ''}>정기 점검</option>
           </select>
@@ -565,7 +564,6 @@ function initEventListeners() {
 
       const row = schedules.find(r => r.id === rowId);
       if (row) {
-        // Automatically sync recommended target category when opening utIds cell
         rowCategoryTabs[rowId] = getRecommendedCategory(row.type, row.subcat);
       }
 
@@ -654,7 +652,6 @@ function initEventListeners() {
       const row = schedules.find(r => r.id === target.dataset.id);
       if (row) {
         row.type = target.value;
-        // Dynamically update recommended target category on type change
         rowCategoryTabs[row.id] = getRecommendedCategory(row.type, row.subcat);
       }
       commitCellEditing('작업유형이 변경되었습니다.');
@@ -731,7 +728,6 @@ function commitCellEditing(toastMsg = null) {
       if (field === 'fab') row.fab = control.value.trim();
       else if (field === 'subcat') {
         row.subcat = control.value.trim();
-        // Dynamically update recommended target category on subcat change
         rowCategoryTabs[rowId] = getRecommendedCategory(row.type, row.subcat);
       }
       else if (field === 'content') row.content = control.value.trim();
@@ -748,13 +744,10 @@ function commitCellEditing(toastMsg = null) {
 // Row Actions
 // ==========================================================================
 
-/**
- * Creates a new row where type, subcat, and target default to unselected ("선택")
- */
 function quickAddRow() {
   const newRow = {
     id: 'row-' + Date.now(),
-    site: '이천',
+    site: '서울본사',
     fab: '',
     type: '',
     subcat: '',
@@ -765,7 +758,6 @@ function quickAddRow() {
   schedules.unshift(newRow);
   saveData();
 
-  // Open the new row's type field into edit mode automatically
   editingCell = { rowId: newRow.id, field: 'type' };
   renderTable();
   showToast('새로운 행이 추가되었습니다. 작업유형을 선택해주세요.');
@@ -827,7 +819,7 @@ function setupModal() {
     const newRow = {
       id: 'row-' + Date.now(),
       site: document.getElementById('modalSite').value,
-      fab: document.getElementById('modalFab').value.trim() || 'M15',
+      fab: document.getElementById('modalFab').value.trim() || 'A동 1층',
       type: document.getElementById('modalType').value || '',
       subcat: document.getElementById('modalSubcat').value.trim() || '',
       utIds: selectedUtOptions,
@@ -858,7 +850,7 @@ function exportToCsv() {
     return;
   }
 
-  const headers = ['Site', 'FAB', '작업유형', '작업구분', '작업대상 ID 목록', '작업대상 항목 목록', '작업 내용'];
+  const headers = ['Site', '구역/Zone', '작업유형', '작업구분', '작업대상 ID 목록', '작업대상 항목 목록', '작업 내용'];
   const rows = schedules.map(item => {
     const utIdsStr = (item.utIds || []).join('; ');
     const equipNames = (item.utIds || []).map(id => {
