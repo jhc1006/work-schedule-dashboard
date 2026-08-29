@@ -81,7 +81,7 @@ const INITIAL_SCHEDULE_DATA = [
   }
 ];
 
-const STORAGE_KEY = 'SK_WORK_SCHEDULE_DATA_V4';
+const STORAGE_KEY = 'SK_WORK_SCHEDULE_DATA_V5';
 
 let schedules = [];
 let selectedRowIds = new Set();
@@ -143,6 +143,9 @@ function getRecommendedCategory(type, subcat) {
 }
 
 function getWorkTypeBadge(type) {
+  if (!type) {
+    return '<span class="badge" style="background:#f1f5f9; color:#94a3b8; border:1px solid #cbd5e1;">선택</span>';
+  }
   switch (type) {
     case 'PM':
       return '<span class="badge badge-pm">PM (예방보전)</span>';
@@ -159,7 +162,7 @@ function getWorkTypeBadge(type) {
 
 function renderUtBadges(selectedIds = []) {
   if (!selectedIds || selectedIds.length === 0) {
-    return '<span class="text-placeholder">+ 작업대상 선택</span>';
+    return '<span class="text-placeholder">선택</span>';
   }
 
   return selectedIds.map(id => {
@@ -175,11 +178,11 @@ function renderUtBadges(selectedIds = []) {
   }).join('');
 }
 
-function getSortedUtOptions(selectedIds = [], categoryFilter = '전체', keyword = '') {
+function getSortedUtOptions(selectedIds = [], categoryFilter = '설비', keyword = '') {
   let list = [...ALL_TARGET_ITEMS];
 
   if (categoryFilter && categoryFilter !== '전체') {
-    list = list.filter(item => item.category === categoryFilter);
+    list = list.filter(item => item.category === categoryFilter || selectedIds.includes(item.id));
   }
 
   if (keyword) {
@@ -198,7 +201,7 @@ function getSortedUtOptions(selectedIds = [], categoryFilter = '전체', keyword
 
 function getUtTriggerText(selectedIds = []) {
   if (!selectedIds || selectedIds.length === 0) {
-    return '<span style="color: var(--text-light);">-- 작업대상 선택 --</span>';
+    return '<span style="color: var(--text-light);">-- 선택 --</span>';
   }
   const firstId = selectedIds[0];
   const item = ALL_TARGET_ITEMS.find(e => e.id === firstId);
@@ -213,10 +216,8 @@ function getUtTriggerText(selectedIds = []) {
 function createUtDropdownHtml(rowId, selectedIds, currentType, currentSubcat) {
   const triggerText = getUtTriggerText(selectedIds);
 
-  // Set default recommended category tab if not set
-  if (!rowCategoryTabs[rowId]) {
-    rowCategoryTabs[rowId] = getRecommendedCategory(currentType, currentSubcat);
-  }
+  // Automatically update recommended category tab whenever dropdown opens or renders
+  rowCategoryTabs[rowId] = getRecommendedCategory(currentType, currentSubcat);
 
   const activeCategory = rowCategoryTabs[rowId];
   const sortedOptions = getSortedUtOptions(selectedIds, activeCategory);
@@ -344,7 +345,7 @@ function renderTable() {
           </select>
         ` : `
           <div class="cell-text-view" data-id="${item.id}" data-field="site">
-            ${escapeHtml(item.site)}
+            ${escapeHtml(item.site) || '<span class="text-placeholder">선택</span>'}
           </div>
         `}
       </td>
@@ -364,6 +365,7 @@ function renderTable() {
       <td class="col-type">
         ${isEditingType ? `
           <select class="table-select edit-control field-type" data-id="${item.id}" data-field="type">
+            <option value="" ${!item.type ? 'selected' : ''}>-- 선택 --</option>
             <option value="PM" ${item.type === 'PM' ? 'selected' : ''}>PM (예방보전)</option>
             <option value="BM" ${item.type === 'BM' ? 'selected' : ''}>BM (고장보전)</option>
             <option value="CM" ${item.type === 'CM' ? 'selected' : ''}>CM (개량보전)</option>
@@ -383,7 +385,7 @@ function renderTable() {
           <input type="text" class="table-input edit-control field-subcat" data-id="${item.id}" data-field="subcat" value="${escapeHtml(item.subcat)}" placeholder="작업구분">
         ` : `
           <div class="cell-text-view" data-id="${item.id}" data-field="subcat">
-            ${escapeHtml(item.subcat) || '<span class="text-placeholder">입력</span>'}
+            ${escapeHtml(item.subcat) || '<span class="text-placeholder">선택</span>'}
           </div>
         `}
       </td>
@@ -459,7 +461,7 @@ function updateUtOptionsList(rowId, keyword = '') {
   const listContainer = document.getElementById(`utList-${rowId}`);
   if (!listContainer) return;
 
-  const activeCategory = rowCategoryTabs[rowId] || '설비';
+  const activeCategory = rowCategoryTabs[rowId] || getRecommendedCategory(row.type, row.subcat);
   const selectedIds = row.utIds || [];
   const sortedOptions = getSortedUtOptions(selectedIds, activeCategory, keyword);
 
@@ -541,7 +543,6 @@ function initEventListeners() {
       const cat = tabBtn.dataset.cat;
       rowCategoryTabs[rowId] = cat;
 
-      // Highlight active tab
       const menu = document.getElementById(`utMenu-${rowId}`);
       if (menu) {
         menu.querySelectorAll('.ut-tab-btn').forEach(btn => {
@@ -564,6 +565,7 @@ function initEventListeners() {
 
       const row = schedules.find(r => r.id === rowId);
       if (row) {
+        // Automatically sync recommended target category when opening utIds cell
         rowCategoryTabs[rowId] = getRecommendedCategory(row.type, row.subcat);
       }
 
@@ -589,7 +591,7 @@ function initEventListeners() {
       const rowId = btnAll.dataset.id;
       const row = schedules.find(r => r.id === rowId);
       if (row) {
-        const activeCat = rowCategoryTabs[rowId] || '설비';
+        const activeCat = rowCategoryTabs[rowId] || getRecommendedCategory(row.type, row.subcat);
         const currentCatItems = getSortedUtOptions([], activeCat).map(i => i.id);
         
         row.utIds = Array.from(new Set([...(row.utIds || []), ...currentCatItems]));
@@ -652,7 +654,7 @@ function initEventListeners() {
       const row = schedules.find(r => r.id === target.dataset.id);
       if (row) {
         row.type = target.value;
-        // Automatically switch target category recommendation on type change
+        // Dynamically update recommended target category on type change
         rowCategoryTabs[row.id] = getRecommendedCategory(row.type, row.subcat);
       }
       commitCellEditing('작업유형이 변경되었습니다.');
@@ -729,7 +731,7 @@ function commitCellEditing(toastMsg = null) {
       if (field === 'fab') row.fab = control.value.trim();
       else if (field === 'subcat') {
         row.subcat = control.value.trim();
-        // Update recommended category
+        // Dynamically update recommended target category on subcat change
         rowCategoryTabs[rowId] = getRecommendedCategory(row.type, row.subcat);
       }
       else if (field === 'content') row.content = control.value.trim();
@@ -746,23 +748,27 @@ function commitCellEditing(toastMsg = null) {
 // Row Actions
 // ==========================================================================
 
+/**
+ * Creates a new row where type, subcat, and target default to unselected ("선택")
+ */
 function quickAddRow() {
   const newRow = {
     id: 'row-' + Date.now(),
     site: '이천',
-    fab: 'M15',
-    type: 'PM',
-    subcat: '정기 점검',
-    utIds: ['UT-VAC-101'],
+    fab: '',
+    type: '',
+    subcat: '',
+    utIds: [],
     content: ''
   };
 
   schedules.unshift(newRow);
   saveData();
 
-  editingCell = { rowId: newRow.id, field: 'content' };
+  // Open the new row's type field into edit mode automatically
+  editingCell = { rowId: newRow.id, field: 'type' };
   renderTable();
-  showToast('새로운 작업 행이 추가되었습니다.');
+  showToast('새로운 행이 추가되었습니다. 작업유형을 선택해주세요.');
 }
 
 function deleteRow(rowId) {
@@ -822,9 +828,9 @@ function setupModal() {
       id: 'row-' + Date.now(),
       site: document.getElementById('modalSite').value,
       fab: document.getElementById('modalFab').value.trim() || 'M15',
-      type: document.getElementById('modalType').value,
-      subcat: document.getElementById('modalSubcat').value.trim() || '정기 점검',
-      utIds: selectedUtOptions.length > 0 ? selectedUtOptions : ['UT-VAC-101'],
+      type: document.getElementById('modalType').value || '',
+      subcat: document.getElementById('modalSubcat').value.trim() || '',
+      utIds: selectedUtOptions,
       content: document.getElementById('modalContent').value.trim()
     };
 
