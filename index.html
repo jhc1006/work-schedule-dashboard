@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>작업 일정 관리 대시보드 | 설비 작업 스케줄</title>
+  <meta name="description" content="반도체 및 유틸리티 설비 작업 일정(Site, FAB, 작업유형, 작업구분, UT ID, 작업 내용) 관리 시스템">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Page Header -->
+    <header class="page-header">
+      <div class="page-title-group">
+        <h1>
+          작업 일정 관리
+          <span class="badge-count" id="visibleCount">0</span>
+        </h1>
+        <p>현장 설비(UT ID) 점검 및 예방보전 작업 내역을 관리하고 편집합니다.</p>
+      </div>
+
+      <div class="action-group">
+        <button type="button" class="btn btn-outline" id="btnExportCsv" title="CSV 파일로 다운로드">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          CSV 내보내기
+        </button>
+        <button type="button" class="btn btn-outline" id="btnQuickAdd" title="빠른 행 추가">
+          + 빠른 행 추가
+        </button>
+        <button type="button" class="btn btn-primary" id="btnAddRow" title="상세 모달로 작업 등록">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          신규 작업 등록
+        </button>
+      </div>
+    </header>
+
+    <!-- Filter & Toolbar -->
+    <section class="toolbar-card" aria-label="필터 및 관리 도구">
+      <div class="filter-group">
+        <!-- Live Search -->
+        <div class="search-input-wrapper">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input type="search" id="searchInput" placeholder="설비명, 내용, FAB 검색..." aria-label="검색어 입력">
+        </div>
+
+        <!-- Site Filter -->
+        <select id="filterSite" class="filter-select" aria-label="Site 필터">
+          <option value="">모든 Site</option>
+          <option value="이천">이천</option>
+          <option value="청주">청주</option>
+          <option value="용인">용인</option>
+          <option value="화성">화성</option>
+        </select>
+
+        <!-- Work Type Filter -->
+        <select id="filterType" class="filter-select" aria-label="작업유형 필터">
+          <option value="">모든 작업유형</option>
+          <option value="PM">PM (예방보전)</option>
+          <option value="BM">BM (고장보전)</option>
+          <option value="CM">CM (개량보전)</option>
+          <option value="점검">정기 점검</option>
+        </select>
+      </div>
+
+      <div class="action-group">
+        <button type="button" class="btn btn-danger-outline" id="btnDeleteSelected">
+          선택 삭제 (<span id="selectedCount">0</span>)
+        </button>
+        <button type="button" class="btn btn-outline" id="btnResetData" title="데이터 초기화">
+          초기화
+        </button>
+      </div>
+    </section>
+
+    <!-- Table Card -->
+    <main class="table-card">
+      <div class="table-wrapper">
+        <table class="schedule-table" id="scheduleTable">
+          <thead>
+            <tr>
+              <th class="col-select center">
+                <input type="checkbox" id="selectAll" aria-label="전체 행 선택">
+              </th>
+              <th class="col-site">Site</th>
+              <th class="col-fab">FAB</th>
+              <th class="col-type">작업유형</th>
+              <th class="col-subcat">작업구분</th>
+              <th class="col-utid">UT ID (설비명)</th>
+              <th class="col-content">작업 내용</th>
+              <th class="col-action center">관리</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleTableBody">
+            <!-- Rendered by app.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer-status">
+        <span>총 등록된 작업: <strong id="totalCount">0</strong>건</span>
+        <span>각 셀 클릭 시 즉시 편집 가능하며, 자동 저장됩니다.</span>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Modal for New Row Creation -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalTitle">신규 작업 일정 등록</h2>
+        <button type="button" class="btn-icon-delete" id="btnModalClose" aria-label="닫기">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <form id="addRowForm">
+        <div class="modal-body">
+          <div class="modal-field">
+            <label for="modalSite">Site</label>
+            <select id="modalSite" required>
+              <option value="이천" selected>이천</option>
+              <option value="청주">청주</option>
+              <option value="용인">용인</option>
+              <option value="화성">화성</option>
+            </select>
+          </div>
+          <div class="modal-field">
+            <label for="modalFab">FAB</label>
+            <input type="text" id="modalFab" value="M15" placeholder="예: M15, M16" required>
+          </div>
+          <div class="modal-field">
+            <label for="modalType">작업유형</label>
+            <select id="modalType" required>
+              <option value="PM" selected>PM (예방보전)</option>
+              <option value="BM">BM (고장보전)</option>
+              <option value="CM">CM (개량보전)</option>
+              <option value="점검">정기 점검</option>
+            </select>
+          </div>
+          <div class="modal-field">
+            <label for="modalSubcat">작업구분</label>
+            <input type="text" id="modalSubcat" value="정기 점검" placeholder="예: 정기 점검, 긴급 수리" required>
+          </div>
+          <div class="modal-field full-width">
+            <label for="modalUtId">UT ID (설비명 선택 - 다중 선택 가능)</label>
+            <select id="modalUtId" multiple style="height: 110px; padding: 6px;" required>
+              <!-- Filled by JS -->
+            </select>
+            <small style="color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block;">* Ctrl 또는 Cmd 키를 누른 채 클릭하여 여러 설비를 다중 선택할 수 있습니다.</small>
+          </div>
+          <div class="modal-field full-width">
+            <label for="modalContent">작업 내용</label>
+            <textarea id="modalContent" placeholder="작업 상세 절차 및 특이사항을 입력하세요..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btnModalCancel">취소</button>
+          <button type="submit" class="btn btn-primary">등록하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="./app.js"></script>
+</body>
+</html>
