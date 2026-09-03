@@ -108,17 +108,16 @@ document.addEventListener('DOMContentLoaded', () => {
   initNoticeEvents();
   initDynamicTabs();
   initGlobalSearchEvents();
-  initAttendanceEvents();
-  initScheduleEvents();
-  initMaterialEvents();
   initTemplateSettingsEvents();
   initIntegratedExportEvents();
   initImagePreviewModalEvents();
+  initImportScheduleModalEvents();
 
   renderNoticeBanner();
-  renderAttendanceTable();
-  renderScheduleTable();
-  renderMaterialTable();
+  
+  // Automatically focus and load the first tab on startup
+  const firstTab = AVAILABLE_TAB_DEFINITIONS[0].id; // 'attendance'
+  switchTab(firstTab);
 });
 
 function initLiveClock() {
@@ -276,20 +275,44 @@ function renderDynamicTabs() {
   }
 }
 
-function switchTab(tabId) {
+const tabHtmlCache = {};
+
+async function switchTab(tabId) {
   activeTab = tabId;
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabId);
   });
 
-  const panelAtt = document.getElementById('tabPanelAttendance');
-  const panelSch = document.getElementById('tabPanelSchedule');
-  const panelMat = document.getElementById('tabPanelMaterial');
+  const container = document.getElementById('tabPanelContainer');
+  if (!container) return;
 
-  if (panelAtt) panelAtt.classList.toggle('active', tabId === 'attendance');
-  if (panelSch) panelSch.classList.toggle('active', tabId === 'schedule');
-  if (panelMat) panelMat.classList.toggle('active', tabId === 'material');
+  if (!tabHtmlCache[tabId]) {
+    try {
+      container.innerHTML = `<div style="padding: 40px; text-align: center; color: #64748b;">[${tabId}] 탭 서브 파일(tab_${tabId}.html)을 동적으로 불러오는 중...</div>`;
+      const res = await fetch(`./tab_${tabId}.html?v=20260904_7`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+      tabHtmlCache[tabId] = html;
+    } catch (err) {
+      container.innerHTML = `<div style="padding: 40px; text-align: center; color: #ef4444;">[오류] tab_${tabId}.html 서브 파일을 불러올 수 없습니다: ${err.message}</div>`;
+      return;
+    }
+  }
+
+  container.innerHTML = tabHtmlCache[tabId];
+
+  // Re-bind events and render table data for the loaded module
+  if (tabId === 'attendance') {
+    initAttendanceEvents();
+    renderAttendanceTable();
+  } else if (tabId === 'schedule') {
+    initScheduleEvents();
+    renderScheduleTable();
+  } else if (tabId === 'material') {
+    initMaterialEvents();
+    renderMaterialTable();
+  }
 
   updateAllTabBadges();
 }
@@ -425,6 +448,129 @@ function closeImagePreviewModal() {
 }
 
 // ==========================================================================
+// 4-1. IMPORT SCHEDULE ITEMS FROM SPECIFIC DATE CONTROLLER
+// ==========================================================================
+const HISTORICAL_DATE_SCHEDULE_MAP = {
+  '2026-09-03': [
+    { id: 'hist-1', site: '서울본사', fab: 'A동 지하2층', type: 'PM', subcat: '소방 점검', utIds: ['FAC-FIRE-002'], content: '소방 수신기 수압 센서 정기 계측 및 테스트', imageUrl: null },
+    { id: 'hist-2', site: '판교센터', fab: '물류 2존', type: '자재입출고', subcat: '파렛트 출고', utIds: ['MAT-PAL-002'], content: '플라스틱 파렛트 50개 출고 검수 및 전달', imageUrl: null },
+    { id: 'hist-3', site: '부산센터', fab: 'B동 2층', type: 'BM', subcat: '긴급 수리', utIds: ['EQ-PUMP-401'], content: '급수 부스터 펌프 압력 가스켓 정비 및 부품 교체', imageUrl: null }
+  ],
+  '2026-09-02': [
+    { id: 'hist-4', site: '서울본사', fab: 'A동 옥상', type: 'PM', subcat: '실외기 점검', utIds: ['EQ-HVAC-101'], content: '냉각탑 팬 벨트 장력 조정 및 정기 윤활유 보충', imageUrl: './img_hvac.jpg' },
+    { id: 'hist-5', site: '대구센터', fab: '물류 1존', type: '자재입출고', subcat: '자재 입고', utIds: ['MAT-TAP-005'], content: '포장용 박스 밴딩 끈 100롤 입고 검수 및 하역', imageUrl: './img_logistics.jpg' }
+  ]
+};
+
+function getHistoricalTasksForDate(dateStr) {
+  if (HISTORICAL_DATE_SCHEDULE_MAP[dateStr]) {
+    return HISTORICAL_DATE_SCHEDULE_MAP[dateStr];
+  }
+  return [
+    { id: `hist-${dateStr}-1`, site: '서울본사', fab: 'A동 1층', type: 'PM', subcat: '정기 점검', utIds: ['EQ-HVAC-101'], content: `[${dateStr}] 일자 공조/인프라 설비 정기 순회 점검`, imageUrl: null },
+    { id: `hist-${dateStr}-2`, site: '판교센터', fab: '물류 센터', type: '자재입출고', subcat: '자재 검수', utIds: ['MAT-BOX-301'], content: `[${dateStr}] 일자 자재 입출고 수량 일치 검수`, imageUrl: null },
+    { id: `hist-${dateStr}-3`, site: '부산센터', fab: '주차장', type: 'CM', subcat: '시설 개선', utIds: ['FAC-PARK-001'], content: `[${dateStr}] 일자 주차 정산기 센서 오차 교정`, imageUrl: null }
+  ];
+}
+
+let fetchedImportTasks = [];
+
+function initImportScheduleModalEvents() {
+  const btnOpen = document.getElementById('btnImportFromDate');
+  const modalOverlay = document.getElementById('importScheduleModalOverlay');
+  const btnClose = document.getElementById('btnImportModalClose');
+  const btnCancel = document.getElementById('btnImportModalCancel');
+  const btnFetch = document.getElementById('btnFetchImportDate');
+  const btnSubmit = document.getElementById('btnSubmitImportSchedule');
+  const dateInput = document.getElementById('importSourceDate');
+  const selectAll = document.getElementById('selectAllImportItems');
+
+  if (btnOpen) {
+    btnOpen.addEventListener('click', () => {
+      if (!dateInput.value) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        dateInput.value = yesterday.toISOString().slice(0, 10);
+      }
+      fetchAndRenderImportTasks();
+      if (modalOverlay) modalOverlay.classList.add('open');
+    });
+  }
+
+  if (btnClose) btnClose.addEventListener('click', closeImportModal);
+  if (btnCancel) btnCancel.addEventListener('click', closeImportModal);
+  if (btnFetch) btnFetch.addEventListener('click', fetchAndRenderImportTasks);
+
+  if (selectAll) {
+    selectAll.addEventListener('change', (e) => {
+      const checked = e.target.checked;
+      document.querySelectorAll('.import-row-checkbox').forEach(cb => cb.checked = checked);
+    });
+  }
+
+  if (btnSubmit) {
+    btnSubmit.addEventListener('click', () => {
+      const selectedCbs = document.querySelectorAll('.import-row-checkbox:checked');
+      if (selectedCbs.length === 0) {
+        alert('추가할 과거 작업 항목을 1개 이상 선택해 주세요.');
+        return;
+      }
+
+      let count = 0;
+      selectedCbs.forEach(cb => {
+        const item = fetchedImportTasks.find(t => t.id === cb.dataset.id);
+        if (item) {
+          schedules.unshift({
+            id: 'row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+            site: item.site,
+            fab: item.fab,
+            type: item.type,
+            subcat: item.subcat,
+            utIds: [...(item.utIds || [])],
+            content: item.content,
+            imageUrl: item.imageUrl || null
+          });
+          count++;
+        }
+      });
+
+      saveScheduleData();
+      renderScheduleTable();
+      closeImportModal();
+      alert(`[${dateInput.value}] 일자의 작업 ${count}건이 현재 작업 일정에 성공적으로 불러와 추가되었습니다!`);
+    });
+  }
+}
+
+function fetchAndRenderImportTasks() {
+  const dateInput = document.getElementById('importSourceDate');
+  const tbody = document.getElementById('importItemsTableBody');
+  if (!dateInput || !tbody) return;
+
+  const dateStr = dateInput.value || '2026-09-03';
+  fetchedImportTasks = getHistoricalTasksForDate(dateStr);
+
+  tbody.innerHTML = '';
+  fetchedImportTasks.forEach(task => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="center"><input type="checkbox" class="import-row-checkbox" data-id="${task.id}" checked></td>
+      <td><strong>${escapeHtml(task.site)}</strong></td>
+      <td>${escapeHtml(task.fab)}</td>
+      <td><span class="badge badge-pm">${escapeHtml(task.type)}</span></td>
+      <td>${escapeHtml(task.subcat)}</td>
+      <td>${escapeHtml(task.content)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function closeImportModal() {
+  const modalOverlay = document.getElementById('importScheduleModalOverlay');
+  if (modalOverlay) modalOverlay.classList.remove('open');
+}
+
+// ==========================================================================
 // 5. INTEGRATED EXCEL & PDF EXPORT CONTROLLER (1개 시트 / 단일 보고서)
 // ==========================================================================
 function initIntegratedExportEvents() {
@@ -532,10 +678,12 @@ function exportIntegratedExcel() {
         </tr>
   `;
 
-  // Append Schedule Data
+  // Append Schedule Data (Includes Embedded Image)
   schedules.forEach(s => {
     const targets = (s.utIds || []).join(', ');
-    const hasImg = s.imageUrl ? '[📷 현장사진 첨부완료]' : '[미첨부]';
+    const imgCellHtml = s.imageUrl 
+      ? `<img src="${s.imageUrl}" width="60" height="60" style="vertical-align:middle; border-radius:4px;"><br><small style="font-size:8pt; color:#15803d; font-weight:bold;">[📷 현장사진 첨부]</small>` 
+      : '<span style="color:#94a3b8;">[미첨부]</span>';
     htmlExcel += `
       <tr>
         <td align="center">${escapeHtml(s.site)}</td>
@@ -544,7 +692,7 @@ function exportIntegratedExcel() {
         <td align="center">${escapeHtml(s.subcat)}</td>
         <td>${escapeHtml(targets)}</td>
         <td>${escapeHtml(s.content)}</td>
-        <td colspan="2" align="center">${hasImg}</td>
+        <td colspan="2" align="center" style="height:70px;">${imgCellHtml}</td>
       </tr>
     `;
   });
@@ -1382,6 +1530,7 @@ function initScheduleEvents() {
   const filterSite = document.getElementById('filterSite');
   const filterType = document.getElementById('filterType');
 
+  const btnImport = document.getElementById('btnImportFromDate');
   const btnExport = document.getElementById('btnExportCsv');
   const btnQuickAdd = document.getElementById('btnQuickAdd');
   const btnAddRow = document.getElementById('btnAddRow');
@@ -1394,32 +1543,46 @@ function initScheduleEvents() {
   const form = document.getElementById('addRowForm');
   const selectAll = document.getElementById('selectAll');
 
-  if (searchInput) searchInput.addEventListener('input', renderScheduleTable);
-  if (filterSite) filterSite.addEventListener('change', renderScheduleTable);
-  if (filterType) filterType.addEventListener('change', renderScheduleTable);
+  if (searchInput) searchInput.oninput = renderScheduleTable;
+  if (filterSite) filterSite.onchange = renderScheduleTable;
+  if (filterType) filterType.onchange = renderScheduleTable;
 
-  if (btnExport) btnExport.addEventListener('click', exportScheduleCsv);
+  if (btnImport) {
+    btnImport.onclick = () => {
+      const dateInput = document.getElementById('importSourceDate');
+      const importOverlay = document.getElementById('importScheduleModalOverlay');
+      if (dateInput && !dateInput.value) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        dateInput.value = yesterday.toISOString().slice(0, 10);
+      }
+      fetchAndRenderImportTasks();
+      if (importOverlay) importOverlay.classList.add('open');
+    };
+  }
+
+  if (btnExport) btnExport.onclick = exportScheduleCsv;
 
   if (btnQuickAdd) {
-    btnQuickAdd.addEventListener('click', () => {
+    btnQuickAdd.onclick = () => {
       schedules.unshift({ id: 'row-' + Date.now(), site: '서울본사', fab: 'A동 1층', type: 'PM', subcat: '정기 점검', utIds: ['EQ-HVAC-101'], content: '신규 점검 작업', imageUrl: null });
       saveScheduleData();
       renderScheduleTable();
-    });
+    };
   }
 
   if (btnAddRow) {
-    btnAddRow.addEventListener('click', () => {
+    btnAddRow.onclick = () => {
       populateModalTargetOptions();
       modalOverlay && modalOverlay.classList.add('open');
-    });
+    };
   }
 
-  if (btnClose) btnClose.addEventListener('click', closeScheduleModal);
-  if (btnCancel) btnCancel.addEventListener('click', closeScheduleModal);
+  if (btnClose) btnClose.onclick = closeScheduleModal;
+  if (btnCancel) btnCancel.onclick = closeScheduleModal;
 
   if (form) {
-    form.addEventListener('submit', (e) => {
+    form.onsubmit = (e) => {
       e.preventDefault();
       const site = document.getElementById('modalSite').value;
       const fab = document.getElementById('modalFab').value.trim();
@@ -1447,11 +1610,11 @@ function initScheduleEvents() {
       } else {
         saveNewRow(null);
       }
-    });
+    };
   }
 
   if (selectAll) {
-    selectAll.addEventListener('change', (e) => {
+    selectAll.onchange = (e) => {
       const checked = e.target.checked;
       document.querySelectorAll('.row-checkbox').forEach(cb => {
         cb.checked = checked;
@@ -1459,11 +1622,11 @@ function initScheduleEvents() {
         else selectedScheduleRowIds.delete(cb.dataset.id);
       });
       updateScheduleStats();
-    });
+    };
   }
 
   if (btnDeleteSel) {
-    btnDeleteSel.addEventListener('click', () => {
+    btnDeleteSel.onclick = () => {
       if (selectedScheduleRowIds.size === 0) { alert('삭제할 행을 선택해 주세요.'); return; }
       if (confirm(`선택한 ${selectedScheduleRowIds.size}개 작업 항목을 삭제하시겠습니까?`)) {
         schedules = schedules.filter(s => !selectedScheduleRowIds.has(s.id));
@@ -1471,22 +1634,25 @@ function initScheduleEvents() {
         saveScheduleData();
         renderScheduleTable();
       }
-    });
+    };
   }
 
   if (btnReset) {
-    btnReset.addEventListener('click', () => {
+    btnReset.onclick = () => {
       if (confirm('작업 일정 데이터를 초기값으로 재설정하시겠습니까?')) {
         schedules = [...INITIAL_SCHEDULE_DATA];
         saveScheduleData();
         renderScheduleTable();
       }
-    });
+    };
   }
+
+  // Also bind import modal controls once
+  initImportScheduleModalEvents();
 
   const tbody = document.getElementById('scheduleTableBody');
   if (tbody) {
-    tbody.addEventListener('click', (e) => {
+    tbody.onclick = (e) => {
       // Trigger Preview
       const previewBtn = e.target.closest('.btn-trigger-preview');
       if (previewBtn) {
@@ -1533,10 +1699,10 @@ function initScheduleEvents() {
         editingCell = { rowId: cellView.dataset.id, field: cellView.dataset.field };
         renderScheduleTable();
       }
-    });
+    };
 
     // File Input Upload Event Handler
-    tbody.addEventListener('change', (e) => {
+    tbody.onchange = (e) => {
       const fileInput = e.target.closest('.schedule-file-input');
       if (fileInput && fileInput.files && fileInput.files[0]) {
         const rowId = fileInput.dataset.id;
@@ -1563,7 +1729,7 @@ function initScheduleEvents() {
         editingCell = null;
         renderScheduleTable();
       }
-    });
+    };
   }
 }
 
@@ -1586,11 +1752,12 @@ function populateModalTargetOptions() {
 }
 
 function exportScheduleCsv() {
-  let csv = '\uFEFFSite,구역/Zone,작업유형,작업구분,작업대상,작업내용,현장사진유무\n';
+  let csv = '\uFEFFSite,구역/Zone,작업유형,작업구분,작업대상,작업내용,현장사진유무,현장사진URL\n';
   schedules.forEach(s => {
     const targets = (s.utIds || []).join(';');
     const hasImg = s.imageUrl ? 'Y' : 'N';
-    csv += `"${s.site}","${s.fab}","${s.type}","${s.subcat}","${targets}","${s.content}","${hasImg}"\n`;
+    const imgData = s.imageUrl ? s.imageUrl : '';
+    csv += `"${s.site}","${s.fab}","${s.type}","${s.subcat}","${targets}","${s.content}","${hasImg}","${imgData}"\n`;
   });
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');

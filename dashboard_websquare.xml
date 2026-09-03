@@ -4,7 +4,7 @@
     xmlns:w2="http://www.inswave.com/websquare" xmlns:ui="http://www.inswave.com/websquare/ui">
     <head>
         <w2:type>COMPONENT</w2:type>
-        <w2:buildDate>2026-09-04 06:33:00</w2:buildDate>
+        <w2:buildDate>2026-09-04 06:47:00</w2:buildDate>
         <w2:model ev:onmodelload="scwin.onmodelload">
             <w2:dataCollection baseNode="map">
                 <!-- 1. Attendance DataList -->
@@ -66,7 +66,6 @@
             };
 
             scwin.initData = function() {
-                // Initialize default sample data
                 dlt_attendance.setJSON([
                     { empId: "EMP-1001", name: "김철수", dept: "시설관리팀", position: "팀장 (서울본사)", clockIn: "08:45", clockOut: "18:10", status: "정상출근", remarks: "A동 공조기 점검 총괄" },
                     { empId: "EMP-1002", name: "이영희", dept: "물류운영팀", position: "파트장 (판교센터)", clockIn: "08:55", clockOut: "18:00", status: "정상출근", remarks: "입출고 자재 검수" }
@@ -83,23 +82,15 @@
                 ]);
             };
 
-            scwin.btnSaveNotice_onclick = function() {
-                var text = dmp_search.get("noticeText");
-                var author = dmp_search.get("noticeAuthor") || "운영관리자";
-                if(!text) {
-                    alert("전달사항을 입력하세요.");
-                    return;
+            scwin.tc_dashboard_ontabclick = function(tabID, idx) {
+                var wframe = $p.getComponentById("wfm_tab_content");
+                if (tabID === "tab_attendance") {
+                    wframe.setSrc("./tab_attendance.xml");
+                } else if (tabID === "tab_schedule") {
+                    wframe.setSrc("./tab_schedule.xml");
+                } else if (tabID === "tab_material") {
+                    wframe.setSrc("./tab_material.xml");
                 }
-                alert("[WebSquare5] 전달사항 저장 완료: " + text + " (작성자: " + author + ")");
-            };
-
-            scwin.btnExportIntegratedExcel_onclick = function() {
-                alert("[WebSquare5] 전달사항 + 근태 + 일정 + 자재 1개 시트 통합 엑셀 다운로드 시작");
-            };
-
-            scwin.btnExportIntegratedPdf_onclick = function() {
-                alert("[WebSquare5] 전달사항 + 전체 탭 통합 관제 보고서 PDF 인쇄 출력 창을 호출합니다.");
-                window.print();
             };
         ]]></script>
     </head>
@@ -107,7 +98,7 @@
         <w2:group class="ws5_container" id="grp_main">
             <!-- Header Banner -->
             <w2:group class="ws5_header" id="grp_header">
-                <w2:textbox id="txt_title" label="[WebSquare5] 시설·물류·근태 종합 운영 관제 대시보드" class="ws5_title"></w2:textbox>
+                <w2:textbox id="txt_title" label="[WebSquare5] 동적 서브 파일 탭 컨트롤 모듈러 관제 대시보드" class="ws5_title"></w2:textbox>
             </w2:group>
 
             <!-- Sticky Fixed Controls -->
@@ -124,100 +115,20 @@
 
                 <w2:textbox id="lbl_notice" label="전달사항: " style="margin-left:20px;"></w2:textbox>
                 <w2:input id="ipt_notice" ref="data:dmp_search.noticeText" style="width:300px;" placeholder="당일 전달사항 입력..."></w2:input>
-                <w2:trigger id="btn_save_notice" label="전달사항 저장" ev:onclick="scwin.btnSaveNotice_onclick" class="ws5_btn_primary"></w2:trigger>
+                <w2:trigger id="btn_save_notice" label="전달사항 저장" class="ws5_btn_primary"></w2:trigger>
 
-                <w2:trigger id="btn_excel" label="📊 1시트 통합 엑셀" ev:onclick="scwin.btnExportIntegratedExcel_onclick" class="ws5_btn_success" style="margin-left:20px;"></w2:trigger>
-                <w2:trigger id="btn_pdf" label="📄 통합 PDF 다운로드" ev:onclick="scwin.btnExportIntegratedPdf_onclick" class="ws5_btn_danger"></w2:trigger>
+                <w2:trigger id="btn_excel" label="📊 1시트 통합 엑셀" class="ws5_btn_success" style="margin-left:20px;"></w2:trigger>
+                <w2:trigger id="btn_pdf" label="📄 통합 PDF 다운로드" class="ws5_btn_danger"></w2:trigger>
             </w2:group>
 
-            <!-- WebSquare5 Tab Control -->
-            <w2:tabControl id="tc_dashboard" style="width:100%; height:600px; margin-top:15px;">
+            <!-- WebSquare5 Dynamic WFrame Tab Controller -->
+            <w2:tabControl id="tc_dashboard" ev:ontabclick="scwin.tc_dashboard_ontabclick" style="width:100%; height:600px; margin-top:15px;">
                 <w2:tabs id="tab_attendance" label="👥 근태현황"></w2:tabs>
                 <w2:tabs id="tab_schedule" label="📋 작업일정관리"></w2:tabs>
                 <w2:tabs id="tab_material" label="📦 자재관리"></w2:tabs>
 
-                <w2:content id="content_attendance">
-                    <w2:gridView id="grd_attendance" dataList="dlt_attendance" style="width:100%; height:450px;" autoFit="allColumn">
-                        <w2:caption label="근태현황 그리드"></w2:caption>
-                        <w2:header>
-                            <w2:row>
-                                <w2:column id="col_empId" label="사원번호"></w2:column>
-                                <w2:column id="col_name" label="성명"></w2:column>
-                                <w2:column id="col_dept" label="부서"></w2:column>
-                                <w2:column id="col_pos" label="직급/사업장"></w2:column>
-                                <w2:column id="col_in" label="출근시간"></w2:column>
-                                <w2:column id="col_out" label="퇴근시간"></w2:column>
-                                <w2:column id="col_status" label="근태상태"></w2:column>
-                                <w2:column id="col_rem" label="비고"></w2:column>
-                            </w2:row>
-                        </w2:header>
-                        <w2:gBody>
-                            <w2:row>
-                                <w2:column id="empId" inputType="text"></w2:column>
-                                <w2:column id="name" inputType="text"></w2:column>
-                                <w2:column id="dept" inputType="text"></w2:column>
-                                <w2:column id="position" inputType="text"></w2:column>
-                                <w2:column id="clockIn" inputType="text"></w2:column>
-                                <w2:column id="clockOut" inputType="text"></w2:column>
-                                <w2:column id="status" inputType="text"></w2:column>
-                                <w2:column id="remarks" inputType="text"></w2:column>
-                            </w2:row>
-                        </w2:gBody>
-                    </w2:gridView>
-                </w2:content>
-
-                <w2:content id="content_schedule">
-                    <w2:gridView id="grd_schedule" dataList="dlt_schedule" style="width:100%; height:450px;" autoFit="allColumn">
-                        <w2:header>
-                            <w2:row>
-                                <w2:column id="col_site" label="Site"></w2:column>
-                                <w2:column id="col_fab" label="구역/Zone"></w2:column>
-                                <w2:column id="col_type" label="작업유형"></w2:column>
-                                <w2:column id="col_sub" label="작업구분"></w2:column>
-                                <w2:column id="col_ut" label="작업대상"></w2:column>
-                                <w2:column id="col_cnt" label="작업내용"></w2:column>
-                                <w2:column id="col_img" label="작업 이미지"></w2:column>
-                            </w2:row>
-                        </w2:header>
-                        <w2:gBody>
-                            <w2:row>
-                                <w2:column id="site" inputType="text"></w2:column>
-                                <w2:column id="fab" inputType="text"></w2:column>
-                                <w2:column id="type" inputType="text"></w2:column>
-                                <w2:column id="subcat" inputType="text"></w2:column>
-                                <w2:column id="utIds" inputType="text"></w2:column>
-                                <w2:column id="content" inputType="text"></w2:column>
-                                <w2:column id="imageUrl" inputType="image" imageWidth="48" imageHeight="48"></w2:column>
-                            </w2:row>
-                        </w2:gBody>
-                    </w2:gridView>
-                </w2:content>
-
-                <w2:content id="content_material">
-                    <w2:gridView id="grd_material" dataList="dlt_material" style="width:100%; height:450px;" autoFit="allColumn">
-                        <w2:header>
-                            <w2:row>
-                                <w2:column id="col_mcode" label="자재코드"></w2:column>
-                                <w2:column id="col_mname" label="자재명"></w2:column>
-                                <w2:column id="col_mcat" label="카테고리"></w2:column>
-                                <w2:column id="col_mloc" label="보관장소"></w2:column>
-                                <w2:column id="col_mstock" label="현재재고"></w2:column>
-                                <w2:column id="col_mmin" label="적정재고"></w2:column>
-                                <w2:column id="col_mstatus" label="재고상태"></w2:column>
-                            </w2:row>
-                        </w2:header>
-                        <w2:gBody>
-                            <w2:row>
-                                <w2:column id="code" inputType="text"></w2:column>
-                                <w2:column id="name" inputType="text"></w2:column>
-                                <w2:column id="category" inputType="text"></w2:column>
-                                <w2:column id="location" inputType="text"></w2:column>
-                                <w2:column id="stock" inputType="text"></w2:column>
-                                <w2:column id="minStock" inputType="text"></w2:column>
-                                <w2:column id="status" inputType="text"></w2:column>
-                            </w2:row>
-                        </w2:gBody>
-                    </w2:gridView>
+                <w2:content id="content_dynamic_wframe">
+                    <w2:wframe id="wfm_tab_content" src="./tab_attendance.xml" style="width:100%; height:450px;"></w2:wframe>
                 </w2:content>
             </w2:tabControl>
         </w2:group>
