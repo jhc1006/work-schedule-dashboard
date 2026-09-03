@@ -554,10 +554,12 @@ function exportIntegratedExcel() {
         </tr>
   `;
 
-  // Append Schedule Data
+  // Append Schedule Data (Includes Embedded Image)
   schedules.forEach(s => {
     const targets = (s.utIds || []).join(', ');
-    const hasImg = s.imageUrl ? '[📷 현장사진 첨부완료]' : '[미첨부]';
+    const imgCellHtml = s.imageUrl 
+      ? `<img src="${s.imageUrl}" width="60" height="60" style="vertical-align:middle; border-radius:4px;"><br><small style="font-size:8pt; color:#15803d; font-weight:bold;">[📷 현장사진 첨부]</small>` 
+      : '<span style="color:#94a3b8;">[미첨부]</span>';
     htmlExcel += `
       <tr>
         <td align="center">${escapeHtml(s.site)}</td>
@@ -566,7 +568,7 @@ function exportIntegratedExcel() {
         <td align="center">${escapeHtml(s.subcat)}</td>
         <td>${escapeHtml(targets)}</td>
         <td>${escapeHtml(s.content)}</td>
-        <td colspan="2" align="center">${hasImg}</td>
+        <td colspan="2" align="center" style="height:70px;">${imgCellHtml}</td>
       </tr>
     `;
   });
@@ -1608,11 +1610,12 @@ function populateModalTargetOptions() {
 }
 
 function exportScheduleCsv() {
-  let csv = '\uFEFFSite,구역/Zone,작업유형,작업구분,작업대상,작업내용,현장사진유무\n';
+  let csv = '\uFEFFSite,구역/Zone,작업유형,작업구분,작업대상,작업내용,현장사진유무,현장사진URL\n';
   schedules.forEach(s => {
     const targets = (s.utIds || []).join(';');
     const hasImg = s.imageUrl ? 'Y' : 'N';
-    csv += `"${s.site}","${s.fab}","${s.type}","${s.subcat}","${targets}","${s.content}","${hasImg}"\n`;
+    const imgData = s.imageUrl ? s.imageUrl : '';
+    csv += `"${s.site}","${s.fab}","${s.type}","${s.subcat}","${targets}","${s.content}","${hasImg}","${imgData}"\n`;
   });
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
