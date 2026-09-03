@@ -1,0 +1,91 @@
+<!-- ==========================================================================
+     TAB CONTENT MODULE 2: [작업일정관리] PANEL (tab_schedule.html)
+     ========================================================================== -->
+<div class="tab-panel-content" id="tabPanelScheduleContent">
+  <!-- Work Schedule Toolbar -->
+  <section class="toolbar-card" aria-label="작업일정 필터 및 관리 도구">
+    <div class="filter-group">
+      <!-- Live Search -->
+      <div class="search-input-wrapper">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+        <input type="search" id="searchInput" placeholder="작업대상, 내용, 구역 검색..." aria-label="검색어 입력">
+      </div>
+
+      <!-- Site Filter -->
+      <select id="filterSite" class="filter-select" aria-label="Site 필터">
+        <option value="">모든 Site</option>
+        <option value="서울본사">서울본사</option>
+        <option value="판교센터">판교센터</option>
+        <option value="부산센터">부산센터</option>
+        <option value="대구센터">대구센터</option>
+      </select>
+
+      <!-- Work Type Filter -->
+      <select id="filterType" class="filter-select" aria-label="작업유형 필터">
+        <option value="">모든 작업유형</option>
+        <option value="PM">PM (예방보전)</option>
+        <option value="BM">BM (고장수리)</option>
+        <option value="CM">CM (시설개선)</option>
+        <option value="자재입출고">자재입출고</option>
+        <option value="점검">정기 점검</option>
+      </select>
+    </div>
+
+    <div class="action-group">
+      <button type="button" class="btn btn-outline" id="btnExportCsv" title="CSV 파일로 다운로드">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+        </svg>
+        CSV 내보내기
+      </button>
+      <button type="button" class="btn btn-outline" id="btnQuickAdd" title="빠른 행 추가">
+        + 빠른 행 추가
+      </button>
+      <button type="button" class="btn btn-primary" id="btnAddRow" title="상세 모달로 작업 등록">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        신규 작업 등록
+      </button>
+      <button type="button" class="btn btn-danger-outline" id="btnDeleteSelected">
+        선택 삭제 (<span id="selectedCount">0</span>)
+      </button>
+      <button type="button" class="btn btn-outline" id="btnResetData" title="데이터 초기화">
+        초기화
+      </button>
+    </div>
+  </section>
+
+  <!-- Schedule Table Card -->
+  <section class="table-card">
+    <div class="table-wrapper">
+      <table class="schedule-table" id="scheduleTable">
+        <thead>
+          <tr>
+            <th class="col-select center">
+              <input type="checkbox" id="selectAll" aria-label="전체 행 선택">
+            </th>
+            <th class="col-site">Site</th>
+            <th class="col-fab">구역/Zone</th>
+            <th class="col-type">작업유형</th>
+            <th class="col-subcat">작업구분</th>
+            <th class="col-utid">작업대상</th>
+            <th class="col-content">작업 내용</th>
+            <th class="col-img center">작업 이미지</th>
+            <th class="col-action center">관리</th>
+          </tr>
+        </thead>
+        <tbody id="scheduleTableBody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-footer-status">
+      <span>총 등록된 작업: <strong id="totalCount">0</strong>건 (<span id="visibleCount">0</span>건 표시)</span>
+      <span>각 셀 클릭 시 즉시 편집 가능하며, 현장 사진 등록/미리보기가 가능합니다.</span>
+    </div>
+  </section>
+</div>

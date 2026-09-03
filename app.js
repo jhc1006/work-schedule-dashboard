@@ -276,20 +276,44 @@ function renderDynamicTabs() {
   }
 }
 
-function switchTab(tabId) {
+const tabHtmlCache = {};
+
+async function switchTab(tabId) {
   activeTab = tabId;
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabId);
   });
 
-  const panelAtt = document.getElementById('tabPanelAttendance');
-  const panelSch = document.getElementById('tabPanelSchedule');
-  const panelMat = document.getElementById('tabPanelMaterial');
+  const container = document.getElementById('tabPanelContainer');
+  if (!container) return;
 
-  if (panelAtt) panelAtt.classList.toggle('active', tabId === 'attendance');
-  if (panelSch) panelSch.classList.toggle('active', tabId === 'schedule');
-  if (panelMat) panelMat.classList.toggle('active', tabId === 'material');
+  if (!tabHtmlCache[tabId]) {
+    try {
+      container.innerHTML = `<div style="padding: 40px; text-align: center; color: #64748b;">[${tabId}] 탭 서브 파일(tab_${tabId}.html)을 동적으로 불러오는 중...</div>`;
+      const res = await fetch(`./tab_${tabId}.html?v=20260904_7`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+      tabHtmlCache[tabId] = html;
+    } catch (err) {
+      container.innerHTML = `<div style="padding: 40px; text-align: center; color: #ef4444;">[오류] tab_${tabId}.html 서브 파일을 불러올 수 없습니다: ${err.message}</div>`;
+      return;
+    }
+  }
+
+  container.innerHTML = tabHtmlCache[tabId];
+
+  // Re-bind events and render table data for the loaded module
+  if (tabId === 'attendance') {
+    initAttendanceEvents();
+    renderAttendanceTable();
+  } else if (tabId === 'schedule') {
+    initScheduleEvents();
+    renderScheduleTable();
+  } else if (tabId === 'material') {
+    initMaterialEvents();
+    renderMaterialTable();
+  }
 
   updateAllTabBadges();
 }
