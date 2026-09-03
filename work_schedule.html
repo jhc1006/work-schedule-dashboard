@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>통합 운영 대시보드 | 근태현황 & 작업일정 & 자재관리</title>
   <meta name="description" content="고정 검색조건, 동적 사업장별 탭 템플릿, 근태현황, 작업일정, 자재관리를 통합 지원하는 웹 대시보드">
-  <link rel="stylesheet" href="./style.css?v=20260904_4">
+  <link rel="stylesheet" href="./style.css?v=20260904_5">
 </head>
 <body>
   <div class="app-container">
     
     <!-- ==========================================================================
-         1. FIXED GLOBAL HEADER (상단 고정 검색조건 및 전달사항 입력 영역)
+         1. FIXED GLOBAL HEADER (상단 고정 헤더: 검색조건 + 전달사항 + 동적 탭 통합)
          ========================================================================== -->
     <header class="global-fixed-header">
       <!-- Title & Info Bar -->
@@ -137,29 +137,27 @@
           </div>
         </div>
       </div>
+
+      <!-- Dynamic Tab Navigation Bar (Moved Inside Fixed Header) -->
+      <div class="tab-nav-wrapper">
+        <nav class="main-tab-nav" id="mainTabNav" aria-label="대시보드 동적 탭">
+          <!-- Rendered dynamically by app.js -->
+        </nav>
+
+        <div class="tab-template-setting-btn-group">
+          <button type="button" class="btn btn-outline btn-template-setting" id="btnOpenTemplateSetting" title="사업장별 노출 탭 템플릿 설정">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            ⚙️ 탭 템플릿 설정
+          </button>
+        </div>
+      </div>
     </header>
 
     <!-- ==========================================================================
-         2. DYNAMIC TAB NAVIGATION BAR (사업장별 템플릿 기반 동적 탭)
-         ========================================================================== -->
-    <div class="tab-nav-wrapper">
-      <nav class="main-tab-nav" id="mainTabNav" aria-label="대시보드 동적 탭">
-        <!-- Rendered dynamically by app.js -->
-      </nav>
-
-      <div class="tab-template-setting-btn-group">
-        <button type="button" class="btn btn-outline btn-template-setting" id="btnOpenTemplateSetting" title="사업장별 노출 탭 템플릿 설정">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          ⚙️ 탭 템플릿 설정
-        </button>
-      </div>
-    </div>
-
-    <!-- ==========================================================================
-         3. TAB CONTENT 1: [근태현황] PANEL
+         2. TAB CONTENT 1: [근태현황] PANEL
          ========================================================================== -->
     <main class="tab-panel active" id="tabPanelAttendance">
       <!-- Attendance KPI Summary Cards -->
@@ -297,7 +295,7 @@
     </main>
 
     <!-- ==========================================================================
-         4. TAB CONTENT 2: [작업일정관리] PANEL (이미지 등록 & 미리보기 컬럼 포함)
+         3. TAB CONTENT 2: [작업일정관리] PANEL
          ========================================================================== -->
     <main class="tab-panel" id="tabPanelSchedule">
       <!-- Work Schedule Toolbar -->
@@ -389,7 +387,7 @@
     </main>
 
     <!-- ==========================================================================
-         5. TAB CONTENT 3: [자재관리] PANEL (신규 동적 탭)
+         4. TAB CONTENT 3: [자재관리] PANEL
          ========================================================================== -->
     <main class="tab-panel" id="tabPanelMaterial">
       <!-- Material KPI Summary Cards -->
@@ -512,7 +510,7 @@
 
   </div>
 
-  <!-- Modal 1: Work Schedule Registration (Includes File Input) -->
+  <!-- Modal 1: Work Schedule Registration -->
   <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-card">
       <div class="modal-header">
@@ -756,6 +754,6 @@
   <div id="pdfReportPrintContainer" class="pdf-report-print-container"></div>
 
   <!-- JavaScript -->
-  <script src="./app.js?v=20260904_4"></script>
+  <script src="./app.js?v=20260904_5"></script>
 </body>
 </html>
