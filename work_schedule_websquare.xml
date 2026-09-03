@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:ev="http://www.w3.org/2001/xml-events"
+    xmlns:w2="http://www.inswave.com/websquare" 
+    xmlns:xf="http://www.w3.org/2002/xforms">
+    <head>
+        <w2:type>DEFAULT</w2:type>
+        <w2:buildDate/>
+        <!-- WebSquare DataCollection & Model Definition -->
+        <xf:model>
+            <w2:dataCollection baseNode="map">
+                <!-- Main Schedule DataList -->
+                <w2:dataList id="dlt_schedule" baseNode="list" saveRemovedData="true" repeatNode="map">
+                    <w2:columnInfo>
+                        <w2:column id="chk" name="선택" dataType="text"></w2:column>
+                        <w2:column id="id" name="ID" dataType="text"></w2:column>
+                        <w2:column id="site" name="Site" dataType="text"></w2:column>
+                        <w2:column id="fab" name="구역/Zone" dataType="text"></w2:column>
+                        <w2:column id="type" name="작업유형" dataType="text"></w2:column>
+                        <w2:column id="subcat" name="작업구분" dataType="text"></w2:column>
+                        <w2:column id="utIds" name="작업대상" dataType="text"></w2:column>
+                        <w2:column id="content" name="작업내용" dataType="text"></w2:column>
+                    </w2:columnInfo>
+                </w2:dataList>
+                
+                <!-- Target Items Reference DataList (설비/자재/시설) -->
+                <w2:dataList id="dlt_targetItems" baseNode="list" saveRemovedData="true" repeatNode="map">
+                    <w2:columnInfo>
+                        <w2:column id="id" name="항목ID" dataType="text"></w2:column>
+                        <w2:column id="name" name="항목명" dataType="text"></w2:column>
+                        <w2:column id="category" name="카테고리" dataType="text"></w2:column>
+                    </w2:columnInfo>
+                </w2:dataList>
+            </w2:dataCollection>
+            <w2:workflowCollection></w2:workflowCollection>
+        </xf:model>
+
+        <!-- WebSquare Page Script (scwin) -->
+        <script type="text/javascript" lazy="false"><![CDATA[
+            /**
+             * WebSquare5 Work Schedule Dashboard Page Controller
+             */
+            var scwin = {};
+
+            // Initial Target Master Data
+            scwin.TARGET_ITEMS = [
+                { id: 'EQ-HVAC-101', name: '중앙 냉난방 공조기 1호기 (Main HVAC System)', category: '설비' },
+                { id: 'EQ-ELEV-204', name: '화물/승객용 엘리베이터 B동 (Freight Elevator)', category: '설비' },
+                { id: 'EQ-CONV-302', name: '물류 이송 컨베이어 라인 #2 (Conveyor Line)', category: '설비' },
+                { id: 'EQ-GEN-105', name: '비상 자가발전기 세트 (300kW Backup Power)', category: '설비' },
+                { id: 'EQ-PUMP-401', name: '메인 급수 부스터 펌프 (Water Booster Pump)', category: '설비' },
+                { id: 'EQ-SOLAR-503', name: '옥상 태양광 발전 인버터 (Solar Inverter)', category: '설비' },
+                { id: 'EQ-COMP-601', name: '산업용 에어 컴프레셔 (Air Compressor #1)', category: '설비' },
+                { id: 'MAT-BOX-301', name: '표준 물류 포장 박스 세트 (Lot #B42)', category: '자재입출고' },
+                { id: 'MAT-PAL-002', name: '플라스틱 표준 파렛트 (1100x1100mm)', category: '자재입출고' },
+                { id: 'MAT-TAP-005', name: '포장용 테이프 및 완충재 묶음', category: '자재입출고' },
+                { id: 'MAT-LUB-001', name: '산업용 기계 윤활유 드럼 (200L)', category: '자재입출고' },
+                { id: 'MAT-LED-102', name: '고효율 LED 조명 교체용 모듈', category: '자재입출고' },
+                { id: 'MAT-FLT-008', name: '공조기 헤파/프리 필터 Replacement Kit', category: '자재입출고' },
+                { id: 'FAC-PARK-001', name: '지하 주차장 무인 차단기 정산 시스템', category: '시설/인프라' },
+                { id: 'FAC-FIRE-002', name: '메인 소방 수신기 및 스프링클러 배관', category: '시설/인프라' },
+                { id: 'FAC-NET-003', name: 'MDF 통신실 메인 네트워크 스위치 랙', category: '시설/인프라' }
+            ];
+
+            // Initial Sample Schedule Data
+            scwin.INITIAL_SCHEDULES = [
+                { id: 'row-1', chk: '0', site: '서울본사', fab: 'A동 3층', type: 'PM', subcat: '정기 점검', utIds: 'EQ-HVAC-101', content: '분기 정기 공조기 필터 점검 및 냉매 압력 상태 계측' },
+                { id: 'row-2', chk: '0', site: '판교센터', fab: '물류존 1', type: '자재입출고', subcat: '원자재 입고', utIds: 'MAT-BOX-301,MAT-PAL-002', content: '신규 물류 표준 포장재 및 파렛트 입고 검수 및 창고 적재' },
+                { id: 'row-3', chk: '0', site: '부산센터', fab: 'B동 1층', type: 'CM', subcat: '개선 개조', utIds: 'EQ-CONV-302', content: '컨베이어 이송 벨트 모터 교체 및 속도 제어 인버터 튜닝' },
+                { id: 'row-4', chk: '0', site: '서울본사', fab: '지하 2층', type: 'PM', subcat: '정기 점검', utIds: 'EQ-GEN-105', content: '비상 발전기 무부하 시운전 및 배터리 전압 점검' },
+                { id: 'row-5', chk: '0', site: '판교센터', fab: '물류존 2', type: '자재입출고', subcat: '부품 출하', utIds: 'MAT-FLT-008', content: '소모성 소모품 및 필터 모듈 출고 불출 처리' }
+            ];
+
+            /**
+             * Page Onload Lifecycle Hook
+             */
+            scwin.onpageload = function() {
+                scwin.initMasterData();
+                scwin.initScheduleData();
+            };
+
+            scwin.initMasterData = function() {
+                dlt_targetItems.setJSON(scwin.TARGET_ITEMS);
+            };
+
+            scwin.initScheduleData = function() {
+                var saved = localStorage.getItem('SK_WORK_SCHEDULE_DATA_WS_V1');
+                if (saved) {
+                    try {
+                        var parsed = JSON.parse(saved);
+                        dlt_schedule.setJSON(parsed);
+                    } catch(e) {
+                        dlt_schedule.setJSON(scwin.INITIAL_SCHEDULES);
+                    }
+                } else {
+                    dlt_schedule.setJSON(scwin.INITIAL_SCHEDULES);
+                }
+                scwin.updateCount();
+            };
+
+            scwin.saveScheduleData = function() {
+                var data = dlt_schedule.getAllJSON();
+                localStorage.setItem('SK_WORK_SCHEDULE_DATA_WS_V1', JSON.stringify(data));
+                scwin.updateCount();
+            };
+
+            scwin.updateCount = function() {
+                var total = dlt_schedule.getRowCount();
+                if (document.getElementById('txt_total_count')) {
+                    document.getElementById('txt_total_count').innerText = total;
+                }
+            };
+
+            /**
+             * Event Handlers
+             */
+            scwin.btnSearch_onclick = function() {
+                var keyword = ibx_search.getValue().trim().toLowerCase();
+                var site = sbx_site.getValue();
+                var type = sbx_type.getValue();
+
+                // Apply filtering to GridView
+                for (var i = 0; i < dlt_schedule.getRowCount(); i++) {
+                    var rowData = dlt_schedule.getRowJSON(i);
+                    var matchSite = !site || rowData.site === site;
+                    var matchType = !type || rowData.type === type;
+                    var matchKeyword = !keyword || 
+                        (rowData.site && rowData.site.toLowerCase().indexOf(keyword) > -1) ||
+                        (rowData.fab && rowData.fab.toLowerCase().indexOf(keyword) > -1) ||
+                        (rowData.subcat && rowData.subcat.toLowerCase().indexOf(keyword) > -1) ||
+                        (rowData.utIds && rowData.utIds.toLowerCase().indexOf(keyword) > -1) ||
+                        (rowData.content && rowData.content.toLowerCase().indexOf(keyword) > -1);
+
+                    if (matchSite && matchType && matchKeyword) {
+                        grd_schedule.setRowVisible(i, true);
+                    } else {
+                        grd_schedule.setRowVisible(i, false);
+                    }
+                }
+            };
+
+            scwin.btnAddRow_onclick = function() {
+                var newRowIdx = dlt_schedule.insertRow();
+                var newId = 'row-' + (new Date().getTime());
+                dlt_schedule.setCellData(newRowIdx, 'id', newId);
+                dlt_schedule.setCellData(newRowIdx, 'chk', '0');
+                dlt_schedule.setCellData(newRowIdx, 'site', '서울본사');
+                dlt_schedule.setCellData(newRowIdx, 'fab', '신규 구역');
+                dlt_schedule.setCellData(newRowIdx, 'type', 'PM');
+                dlt_schedule.setCellData(newRowIdx, 'subcat', '정기 점검');
+                dlt_schedule.setCellData(newRowIdx, 'utIds', 'EQ-HVAC-101');
+                dlt_schedule.setCellData(newRowIdx, 'content', '신규 작업 내용을 입력하세요.');
+                scwin.saveScheduleData();
+            };
+
+            scwin.btnQuickAdd_onclick = function() {
+                scwin.btnAddRow_onclick();
+            };
+
+            scwin.btnDeleteSelected_onclick = function() {
+                var checkedRows = grd_schedule.getCheckedIndex('chk');
+                if (checkedRows.length === 0) {
+                    alert('삭제할 행을 선택하세요.');
+                    return;
+                }
+                if (confirm(checkedRows.length + '개 항목을 삭제하시겠습니까?')) {
+                    dlt_schedule.removeRows(checkedRows);
+                    scwin.saveScheduleData();
+                }
+            };
+
+            scwin.btnReset_onclick = function() {
+                if (confirm('모든 데이터를 초기화하시겠습니까?')) {
+                    localStorage.removeItem('SK_WORK_SCHEDULE_DATA_WS_V1');
+                    dlt_schedule.setJSON(scwin.INITIAL_SCHEDULES);
+                    scwin.saveScheduleData();
+                }
+            };
+
+            scwin.btnExportCsv_onclick = function() {
+                grd_schedule.exportCSV({
+                    fileName: 'Work_Schedule_WebSquare.csv',
+                    useHeader: true
+                });
+            };
+
+            scwin.grd_schedule_oncellclick = function(row, col) {
+                var colId = grd_schedule.getColumnID(col);
+                if (colId === 'action') {
+                    if (confirm('해당 행을 삭제하시겠습니까?')) {
+                        dlt_schedule.removeRow(row);
+                        scwin.saveScheduleData();
+                    }
+                }
+            };
+        ]]></script>
+    </head>
+
+    <body>
+        <!-- Main Application Layout -->
+        <xf:group id="grp_container" class="ws_container">
+            
+            <!-- Page Header -->
+            <xf:group id="grp_header" class="ws_header">
+                <xf:group class="ws_title_area">
+                    <w2:textbox id="txt_title" label="작업 일정 관리 시스템 (WebSquare5 Enterprise)" class="ws_title"/>
+                    <w2:textbox id="txt_desc" label="웹스퀘어5 기반 통합 시설 및 물류 스케줄 관리 모듈" class="ws_subtitle"/>
+                </xf:group>
+                <xf:group id="grp_header_btn" class="ws_btn_group">
+                    <w2:trigger id="btnExportCsv" type="button" class="ws_btn ws_btn_outline" ev:onclick="scwin.btnExportCsv_onclick">
+                        <w2:label>CSV 내보내기</w2:label>
+                    </w2:trigger>
+                    <w2:trigger id="btnQuickAdd" type="button" class="ws_btn ws_btn_outline" ev:onclick="scwin.btnQuickAdd_onclick">
+                        <w2:label>+ 빠른 행 추가</w2:label>
+                    </w2:trigger>
+                    <w2:trigger id="btnAddRow" type="button" class="ws_btn ws_btn_primary" ev:onclick="scwin.btnAddRow_onclick">
+                        <w2:label>신규 작업 등록</w2:label>
+                    </w2:trigger>
+                </xf:group>
+            </xf:group>
+
+            <!-- Filter & Toolbar -->
+            <xf:group id="grp_toolbar" class="ws_toolbar">
+                <xf:group class="ws_filter_group">
+                    <xf:input id="ibx_search" placeholder="작업대상, 내용, 구역 검색..." ev:onkeyup="scwin.btnSearch_onclick" class="ws_input_search"/>
+                    <xf:select1 id="sbx_site" appearance="minimal" chooseOption="true" chooseOptionLabel="모든 Site" ev:onchange="scwin.btnSearch_onclick" class="ws_select">
+                        <xf:choices>
+                            <xf:item><xf:label>서울본사</xf:label><xf:value>서울본사</xf:value></xf:item>
+                            <xf:item><xf:label>판교센터</xf:label><xf:value>판교센터</xf:value></xf:item>
+                            <xf:item><xf:label>부산센터</xf:label><xf:value>부산센터</xf:value></xf:item>
+                            <xf:item><xf:label>대구센터</xf:label><xf:value>대구센터</xf:value></xf:item>
+                        </xf:choices>
+                    </xf:select1>
+                    <xf:select1 id="sbx_type" appearance="minimal" chooseOption="true" chooseOptionLabel="모든 작업유형" ev:onchange="scwin.btnSearch_onclick" class="ws_select">
+                        <xf:choices>
+                            <xf:item><xf:label>PM (예방보전)</xf:label><xf:value>PM</xf:value></xf:item>
+                            <xf:item><xf:label>BM (고장수리)</xf:label><xf:value>BM</xf:value></xf:item>
+                            <xf:item><xf:label>CM (시설개선)</xf:label><xf:value>CM</xf:value></xf:item>
+                            <xf:item><xf:label>자재입출고</xf:label><xf:value>자재입출고</xf:value></xf:item>
+                            <xf:item><xf:label>정기 점검</xf:label><xf:value>점검</xf:value></xf:item>
+                        </xf:choices>
+                    </xf:select1>
+                </xf:group>
+                <xf:group class="ws_action_group">
+                    <w2:trigger id="btnDeleteSelected" type="button" class="ws_btn ws_btn_danger" ev:onclick="scwin.btnDeleteSelected_onclick">
+                        <w2:label>선택 삭제</w2:label>
+                    </w2:trigger>
+                    <w2:trigger id="btnReset" type="button" class="ws_btn ws_btn_outline" ev:onclick="scwin.btnReset_onclick">
+                        <w2:label>초기화</w2:label>
+                    </w2:trigger>
+                </xf:group>
+            </xf:group>
+
+            <!-- WebSquare GridView -->
+            <xf:group class="ws_grid_wrapper">
+                <w2:gridView id="grd_schedule" dataList="dlt_schedule" autoFit="allColumn" class="ws_grid" ev:oncellclick="scwin.grd_schedule_oncellclick">
+                    <w2:header id="header1">
+                        <w2:row id="row1">
+                            <w2:column id="chk" inputType="checkbox" value="선택" width="50"/>
+                            <w2:column id="site" inputType="text" value="Site" width="100"/>
+                            <w2:column id="fab" inputType="text" value="구역/Zone" width="120"/>
+                            <w2:column id="type" inputType="text" value="작업유형" width="120"/>
+                            <w2:column id="subcat" inputType="text" value="작업구분" width="120"/>
+                            <w2:column id="utIds" inputType="text" value="작업대상" width="220"/>
+                            <w2:column id="content" inputType="text" value="작업 내용" width="280"/>
+                            <w2:column id="action" inputType="text" value="관리" width="80"/>
+                        </w2:row>
+                    </w2:header>
+                    <w2:gBody id="gBody1">
+                        <w2:row id="row2">
+                            <w2:column id="chk" inputType="checkbox" width="50"/>
+                            <w2:column id="site" inputType="select" width="100"/>
+                            <w2:column id="fab" inputType="text" width="120"/>
+                            <w2:column id="type" inputType="select" width="120"/>
+                            <w2:column id="subcat" inputType="text" width="120"/>
+                            <w2:column id="utIds" inputType="text" width="220"/>
+                            <w2:column id="content" inputType="text" width="280"/>
+                            <w2:column id="action" inputType="button" value="삭제" width="80"/>
+                        </w2:row>
+                    </w2:gBody>
+                </w2:gridView>
+            </xf:group>
+
+        </xf:group>
+    </body>
+</html>

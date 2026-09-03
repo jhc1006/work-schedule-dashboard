@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSquare5 통합 대시보드 시뮬레이터</title>
+  <link rel="stylesheet" href="./style.css?v=20260904_4">
+  <style>
+    .ws5-simulator-bar {
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .ws5-simulator-title {
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ws5-badge {
+      background: #38bdf8;
+      color: #0f172a;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .ws5-code-box {
+      background: #1e293b;
+      color: #f8fafc;
+      font-family: monospace;
+      padding: 14px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      overflow-x: auto;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="ws5-simulator-bar">
+      <div class="ws5-simulator-title">
+        <span class="ws5-badge">WEBSQUARE5 SIMULATOR</span>
+        <span>인스웨이브 WebSquare5 XML 컴포넌트 렌더러 / 시뮬레이터</span>
+      </div>
+      <div>
+        <a href="./index.html" class="btn btn-outline btn-sm" style="color:#fff; border-color:#475569;">Standard Web 버전 보기</a>
+      </div>
+    </div>
+
+    <!-- Include Main Dashboard Structure -->
+    <iframe src="./index.html" style="width:100%; height:780px; border:1px solid #cbd5e1; border-radius:12px; background:#fff;"></iframe>
+
+    <div class="ws5-code-box">
+      <strong>📄 바인딩된 WebSquare5 XML 소스 코드 (`dashboard_websquare.xml`) 정보:</strong><br>
+      • WebSquare Model: DataList (dlt_attendance, dlt_schedule, dlt_material), DataMap (dmp_search)<br>
+      • Components: w2:tabControl, w2:gridView, w2:selectbox, w2:trigger<br>
+      • XML 컴포넌트 파일 위치: <a href="file:///Users/jeonhyochul/work/Example/dashboard_websquare.xml" style="color:#38bdf8;">/Users/jeonhyochul/work/Example/dashboard_websquare.xml</a>
+    </div>
+  </div>
+</body>
+</html>
