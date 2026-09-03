@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTemplateSettingsEvents();
   initIntegratedExportEvents();
   initImagePreviewModalEvents();
+  initImportScheduleModalEvents();
 
   renderNoticeBanner();
   
@@ -444,6 +445,129 @@ function openImagePreviewModal(imageUrl, titleStr, captionHtml) {
 function closeImagePreviewModal() {
   const overlay = document.getElementById('imagePreviewModalOverlay');
   if (overlay) overlay.classList.remove('open');
+}
+
+// ==========================================================================
+// 4-1. IMPORT SCHEDULE ITEMS FROM SPECIFIC DATE CONTROLLER
+// ==========================================================================
+const HISTORICAL_DATE_SCHEDULE_MAP = {
+  '2026-09-03': [
+    { id: 'hist-1', site: '서울본사', fab: 'A동 지하2층', type: 'PM', subcat: '소방 점검', utIds: ['FAC-FIRE-002'], content: '소방 수신기 수압 센서 정기 계측 및 테스트', imageUrl: null },
+    { id: 'hist-2', site: '판교센터', fab: '물류 2존', type: '자재입출고', subcat: '파렛트 출고', utIds: ['MAT-PAL-002'], content: '플라스틱 파렛트 50개 출고 검수 및 전달', imageUrl: null },
+    { id: 'hist-3', site: '부산센터', fab: 'B동 2층', type: 'BM', subcat: '긴급 수리', utIds: ['EQ-PUMP-401'], content: '급수 부스터 펌프 압력 가스켓 정비 및 부품 교체', imageUrl: null }
+  ],
+  '2026-09-02': [
+    { id: 'hist-4', site: '서울본사', fab: 'A동 옥상', type: 'PM', subcat: '실외기 점검', utIds: ['EQ-HVAC-101'], content: '냉각탑 팬 벨트 장력 조정 및 정기 윤활유 보충', imageUrl: './img_hvac.jpg' },
+    { id: 'hist-5', site: '대구센터', fab: '물류 1존', type: '자재입출고', subcat: '자재 입고', utIds: ['MAT-TAP-005'], content: '포장용 박스 밴딩 끈 100롤 입고 검수 및 하역', imageUrl: './img_logistics.jpg' }
+  ]
+};
+
+function getHistoricalTasksForDate(dateStr) {
+  if (HISTORICAL_DATE_SCHEDULE_MAP[dateStr]) {
+    return HISTORICAL_DATE_SCHEDULE_MAP[dateStr];
+  }
+  return [
+    { id: `hist-${dateStr}-1`, site: '서울본사', fab: 'A동 1층', type: 'PM', subcat: '정기 점검', utIds: ['EQ-HVAC-101'], content: `[${dateStr}] 일자 공조/인프라 설비 정기 순회 점검`, imageUrl: null },
+    { id: `hist-${dateStr}-2`, site: '판교센터', fab: '물류 센터', type: '자재입출고', subcat: '자재 검수', utIds: ['MAT-BOX-301'], content: `[${dateStr}] 일자 자재 입출고 수량 일치 검수`, imageUrl: null },
+    { id: `hist-${dateStr}-3`, site: '부산센터', fab: '주차장', type: 'CM', subcat: '시설 개선', utIds: ['FAC-PARK-001'], content: `[${dateStr}] 일자 주차 정산기 센서 오차 교정`, imageUrl: null }
+  ];
+}
+
+let fetchedImportTasks = [];
+
+function initImportScheduleModalEvents() {
+  const btnOpen = document.getElementById('btnImportFromDate');
+  const modalOverlay = document.getElementById('importScheduleModalOverlay');
+  const btnClose = document.getElementById('btnImportModalClose');
+  const btnCancel = document.getElementById('btnImportModalCancel');
+  const btnFetch = document.getElementById('btnFetchImportDate');
+  const btnSubmit = document.getElementById('btnSubmitImportSchedule');
+  const dateInput = document.getElementById('importSourceDate');
+  const selectAll = document.getElementById('selectAllImportItems');
+
+  if (btnOpen) {
+    btnOpen.addEventListener('click', () => {
+      if (!dateInput.value) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        dateInput.value = yesterday.toISOString().slice(0, 10);
+      }
+      fetchAndRenderImportTasks();
+      if (modalOverlay) modalOverlay.classList.add('open');
+    });
+  }
+
+  if (btnClose) btnClose.addEventListener('click', closeImportModal);
+  if (btnCancel) btnCancel.addEventListener('click', closeImportModal);
+  if (btnFetch) btnFetch.addEventListener('click', fetchAndRenderImportTasks);
+
+  if (selectAll) {
+    selectAll.addEventListener('change', (e) => {
+      const checked = e.target.checked;
+      document.querySelectorAll('.import-row-checkbox').forEach(cb => cb.checked = checked);
+    });
+  }
+
+  if (btnSubmit) {
+    btnSubmit.addEventListener('click', () => {
+      const selectedCbs = document.querySelectorAll('.import-row-checkbox:checked');
+      if (selectedCbs.length === 0) {
+        alert('추가할 과거 작업 항목을 1개 이상 선택해 주세요.');
+        return;
+      }
+
+      let count = 0;
+      selectedCbs.forEach(cb => {
+        const item = fetchedImportTasks.find(t => t.id === cb.dataset.id);
+        if (item) {
+          schedules.unshift({
+            id: 'row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+            site: item.site,
+            fab: item.fab,
+            type: item.type,
+            subcat: item.subcat,
+            utIds: [...(item.utIds || [])],
+            content: item.content,
+            imageUrl: item.imageUrl || null
+          });
+          count++;
+        }
+      });
+
+      saveScheduleData();
+      renderScheduleTable();
+      closeImportModal();
+      alert(`[${dateInput.value}] 일자의 작업 ${count}건이 현재 작업 일정에 성공적으로 불러와 추가되었습니다!`);
+    });
+  }
+}
+
+function fetchAndRenderImportTasks() {
+  const dateInput = document.getElementById('importSourceDate');
+  const tbody = document.getElementById('importItemsTableBody');
+  if (!dateInput || !tbody) return;
+
+  const dateStr = dateInput.value || '2026-09-03';
+  fetchedImportTasks = getHistoricalTasksForDate(dateStr);
+
+  tbody.innerHTML = '';
+  fetchedImportTasks.forEach(task => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="center"><input type="checkbox" class="import-row-checkbox" data-id="${task.id}" checked></td>
+      <td><strong>${escapeHtml(task.site)}</strong></td>
+      <td>${escapeHtml(task.fab)}</td>
+      <td><span class="badge badge-pm">${escapeHtml(task.type)}</span></td>
+      <td>${escapeHtml(task.subcat)}</td>
+      <td>${escapeHtml(task.content)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function closeImportModal() {
+  const modalOverlay = document.getElementById('importScheduleModalOverlay');
+  if (modalOverlay) modalOverlay.classList.remove('open');
 }
 
 // ==========================================================================

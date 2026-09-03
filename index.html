@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>통합 운영 대시보드 | 근태현황 & 작업일정 & 자재관리</title>
   <meta name="description" content="고정 검색조건, 동적 사업장별 탭 템플릿, 근태현황, 작업일정, 자재관리를 통합 지원하는 웹 대시보드">
-  <link rel="stylesheet" href="./style.css?v=20260904_7">
+  <link rel="stylesheet" href="./style.css?v=20260904_8">
 </head>
 <body>
   <div class="app-container">
@@ -407,10 +407,58 @@
     </div>
   </div>
 
+  <!-- Modal 6: Import Schedule Items from Specific Date Modal -->
+  <div class="modal-overlay" id="importScheduleModalOverlay" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
+    <div class="modal-card image-preview-modal-card">
+      <div class="modal-header">
+        <h2 id="importModalTitle">📅 특정일자 작업 내용 불러오기</h2>
+        <button type="button" class="btn-icon-delete" id="btnImportModalClose" aria-label="닫기">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" style="grid-template-columns: 1fr;">
+        <div class="modal-field full-width">
+          <label for="importSourceDate">불러올 기준 일자 선택</label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="date" id="importSourceDate" class="control-input" style="flex:1;">
+            <button type="button" class="btn btn-primary" id="btnFetchImportDate">작업 내역 조회</button>
+          </div>
+        </div>
+
+        <div class="modal-field full-width" style="margin-top: 10px;">
+          <label>조회된 과거 작업 목록 (현재 일정으로 복사 추가할 작업을 선택하세요)</label>
+          <div class="table-wrapper" style="max-height: 240px; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+            <table class="schedule-table">
+              <thead>
+                <tr>
+                  <th class="center" style="width: 40px;"><input type="checkbox" id="selectAllImportItems"></th>
+                  <th>Site</th>
+                  <th>구역</th>
+                  <th>유형</th>
+                  <th>구분</th>
+                  <th>작업 내용</th>
+                </tr>
+              </thead>
+              <tbody id="importItemsTableBody">
+                <!-- Dynamically filled by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="btnImportModalCancel">취소</button>
+        <button type="button" class="btn btn-primary" id="btnSubmitImportSchedule">선택한 작업 일괄 추가</button>
+      </div>
+    </div>
+  </div>
+
   <!-- PDF Print Report Dedicated Container -->
   <div id="pdfReportPrintContainer" class="pdf-report-print-container"></div>
 
   <!-- JavaScript -->
-  <script src="./app.js?v=20260904_7"></script>
+  <script src="./app.js?v=20260904_8"></script>
 </body>
 </html>
