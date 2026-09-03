@@ -1530,6 +1530,7 @@ function initScheduleEvents() {
   const filterSite = document.getElementById('filterSite');
   const filterType = document.getElementById('filterType');
 
+  const btnImport = document.getElementById('btnImportFromDate');
   const btnExport = document.getElementById('btnExportCsv');
   const btnQuickAdd = document.getElementById('btnQuickAdd');
   const btnAddRow = document.getElementById('btnAddRow');
@@ -1542,32 +1543,46 @@ function initScheduleEvents() {
   const form = document.getElementById('addRowForm');
   const selectAll = document.getElementById('selectAll');
 
-  if (searchInput) searchInput.addEventListener('input', renderScheduleTable);
-  if (filterSite) filterSite.addEventListener('change', renderScheduleTable);
-  if (filterType) filterType.addEventListener('change', renderScheduleTable);
+  if (searchInput) searchInput.oninput = renderScheduleTable;
+  if (filterSite) filterSite.onchange = renderScheduleTable;
+  if (filterType) filterType.onchange = renderScheduleTable;
 
-  if (btnExport) btnExport.addEventListener('click', exportScheduleCsv);
+  if (btnImport) {
+    btnImport.onclick = () => {
+      const dateInput = document.getElementById('importSourceDate');
+      const importOverlay = document.getElementById('importScheduleModalOverlay');
+      if (dateInput && !dateInput.value) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        dateInput.value = yesterday.toISOString().slice(0, 10);
+      }
+      fetchAndRenderImportTasks();
+      if (importOverlay) importOverlay.classList.add('open');
+    };
+  }
+
+  if (btnExport) btnExport.onclick = exportScheduleCsv;
 
   if (btnQuickAdd) {
-    btnQuickAdd.addEventListener('click', () => {
+    btnQuickAdd.onclick = () => {
       schedules.unshift({ id: 'row-' + Date.now(), site: '서울본사', fab: 'A동 1층', type: 'PM', subcat: '정기 점검', utIds: ['EQ-HVAC-101'], content: '신규 점검 작업', imageUrl: null });
       saveScheduleData();
       renderScheduleTable();
-    });
+    };
   }
 
   if (btnAddRow) {
-    btnAddRow.addEventListener('click', () => {
+    btnAddRow.onclick = () => {
       populateModalTargetOptions();
       modalOverlay && modalOverlay.classList.add('open');
-    });
+    };
   }
 
-  if (btnClose) btnClose.addEventListener('click', closeScheduleModal);
-  if (btnCancel) btnCancel.addEventListener('click', closeScheduleModal);
+  if (btnClose) btnClose.onclick = closeScheduleModal;
+  if (btnCancel) btnCancel.onclick = closeScheduleModal;
 
   if (form) {
-    form.addEventListener('submit', (e) => {
+    form.onsubmit = (e) => {
       e.preventDefault();
       const site = document.getElementById('modalSite').value;
       const fab = document.getElementById('modalFab').value.trim();
@@ -1595,11 +1610,11 @@ function initScheduleEvents() {
       } else {
         saveNewRow(null);
       }
-    });
+    };
   }
 
   if (selectAll) {
-    selectAll.addEventListener('change', (e) => {
+    selectAll.onchange = (e) => {
       const checked = e.target.checked;
       document.querySelectorAll('.row-checkbox').forEach(cb => {
         cb.checked = checked;
@@ -1607,11 +1622,11 @@ function initScheduleEvents() {
         else selectedScheduleRowIds.delete(cb.dataset.id);
       });
       updateScheduleStats();
-    });
+    };
   }
 
   if (btnDeleteSel) {
-    btnDeleteSel.addEventListener('click', () => {
+    btnDeleteSel.onclick = () => {
       if (selectedScheduleRowIds.size === 0) { alert('삭제할 행을 선택해 주세요.'); return; }
       if (confirm(`선택한 ${selectedScheduleRowIds.size}개 작업 항목을 삭제하시겠습니까?`)) {
         schedules = schedules.filter(s => !selectedScheduleRowIds.has(s.id));
@@ -1619,18 +1634,22 @@ function initScheduleEvents() {
         saveScheduleData();
         renderScheduleTable();
       }
-    });
+    };
   }
 
   if (btnReset) {
-    btnReset.addEventListener('click', () => {
+    btnReset.onclick = () => {
       if (confirm('작업 일정 데이터를 초기값으로 재설정하시겠습니까?')) {
         schedules = [...INITIAL_SCHEDULE_DATA];
         saveScheduleData();
         renderScheduleTable();
       }
-    });
+    };
   }
+
+  // Also bind import modal controls once
+  initImportScheduleModalEvents();
+}
 
   const tbody = document.getElementById('scheduleTableBody');
   if (tbody) {
