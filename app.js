@@ -108,17 +108,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initNoticeEvents();
   initDynamicTabs();
   initGlobalSearchEvents();
-  initAttendanceEvents();
-  initScheduleEvents();
-  initMaterialEvents();
   initTemplateSettingsEvents();
   initIntegratedExportEvents();
   initImagePreviewModalEvents();
 
   renderNoticeBanner();
-  renderAttendanceTable();
-  renderScheduleTable();
-  renderMaterialTable();
+  
+  // Automatically focus and load the first tab on startup
+  const firstTab = AVAILABLE_TAB_DEFINITIONS[0].id; // 'attendance'
+  switchTab(firstTab);
 });
 
 function initLiveClock() {
