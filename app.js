@@ -1649,11 +1649,10 @@ function initScheduleEvents() {
 
   // Also bind import modal controls once
   initImportScheduleModalEvents();
-}
 
   const tbody = document.getElementById('scheduleTableBody');
   if (tbody) {
-    tbody.addEventListener('click', (e) => {
+    tbody.onclick = (e) => {
       // Trigger Preview
       const previewBtn = e.target.closest('.btn-trigger-preview');
       if (previewBtn) {
@@ -1700,10 +1699,10 @@ function initScheduleEvents() {
         editingCell = { rowId: cellView.dataset.id, field: cellView.dataset.field };
         renderScheduleTable();
       }
-    });
+    };
 
     // File Input Upload Event Handler
-    tbody.addEventListener('change', (e) => {
+    tbody.onchange = (e) => {
       const fileInput = e.target.closest('.schedule-file-input');
       if (fileInput && fileInput.files && fileInput.files[0]) {
         const rowId = fileInput.dataset.id;
@@ -1730,7 +1729,7 @@ function initScheduleEvents() {
         editingCell = null;
         renderScheduleTable();
       }
-    });
+    };
   }
 }
 
