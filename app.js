@@ -1489,11 +1489,11 @@ function createUtDropdownHtml(rowId, selectedIds = [], currentType = '', current
 
   return `
     <div class="custom-ut-dropdown" data-id="${rowId}">
+      <div class="ut-dropdown-trigger open" data-id="${rowId}">
+        <span class="ut-trigger-text">${triggerText}</span>
+        <span class="ut-trigger-arrow">▾</span>
+      </div>
       <div class="ut-dropdown-menu" id="utMenu-${rowId}">
-        <div class="ut-dropdown-header">
-          <span class="ut-header-title">📋 작업대상 선택 (${ids.length > 0 ? ids.length + '개 선택됨' : '미선택'})</span>
-          <button type="button" class="btn-ut-close" data-id="${rowId}">✕ 닫기</button>
-        </div>
         <div class="ut-category-tabs">
           <button type="button" class="ut-tab-btn ${activeCategory === '설비' ? 'active' : ''}" data-row-id="${rowId}" data-cat="설비">설비</button>
           <button type="button" class="ut-tab-btn ${activeCategory === '자재입출고' ? 'active' : ''}" data-row-id="${rowId}" data-cat="자재입출고">자재입출고</button>
@@ -1511,7 +1511,7 @@ function createUtDropdownHtml(rowId, selectedIds = [], currentType = '', current
             <button type="button" class="btn-text btn-ut-all" data-id="${rowId}">전체선택</button>
             <button type="button" class="btn-text btn-clear btn-ut-clear" data-id="${rowId}">선택해제</button>
           </div>
-          <button type="button" class="btn-ut-close" data-id="${rowId}" style="background:var(--success); color:#fff;">✓ 완료</button>
+          <button type="button" class="btn-ut-close" data-id="${rowId}">확인</button>
         </div>
       </div>
     </div>
