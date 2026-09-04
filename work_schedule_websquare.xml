@@ -272,8 +272,8 @@
                             <w2:column id="site" inputType="select" width="100"/>
                             <w2:column id="fab" inputType="text" width="120"/>
                             <w2:column id="type" inputType="select" width="120"/>
-                            <w2:column id="subcat" inputType="text" width="120"/>
-                            <w2:column id="utIds" inputType="text" width="220"/>
+                            <w2:column id="subcat" inputType="select" width="120"/>
+                            <w2:column id="utIds" inputType="select" width="220"/>
                             <w2:column id="content" inputType="text" width="280"/>
                             <w2:column id="action" inputType="button" value="삭제" width="80"/>
                         </w2:row>

@@ -25,8 +25,8 @@
                         <w2:column id="site" inputType="text"></w2:column>
                         <w2:column id="fab" inputType="text"></w2:column>
                         <w2:column id="type" inputType="text"></w2:column>
-                        <w2:column id="subcat" inputType="text"></w2:column>
-                        <w2:column id="utIds" inputType="text"></w2:column>
+                        <w2:column id="subcat" inputType="select"></w2:column>
+                        <w2:column id="utIds" inputType="select"></w2:column>
                         <w2:column id="content" inputType="text"></w2:column>
                         <w2:column id="imageUrl" inputType="image" imageWidth="48" imageHeight="48"></w2:column>
                     </w2:row>

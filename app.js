@@ -1452,6 +1452,7 @@ function renderScheduleTable() {
     const isEditingFab = editingCell && editingCell.rowId === item.id && editingCell.field === 'fab';
     const isEditingType = editingCell && editingCell.rowId === item.id && editingCell.field === 'type';
     const isEditingSubcat = editingCell && editingCell.rowId === item.id && editingCell.field === 'subcat';
+    const isEditingUtIds = editingCell && editingCell.rowId === item.id && editingCell.field === 'utIds';
     const isEditingContent = editingCell && editingCell.rowId === item.id && editingCell.field === 'content';
 
     let imageCellHtml = '';
@@ -1473,6 +1474,8 @@ function renderScheduleTable() {
         </div>
       `;
     }
+
+    const subcatOptions = ['정기 점검', '실외기 점검', '자재 입고', '원자재 입고', '파렛트 출고', '부품 출하', '긴급 수리', '소방 점검', '개선 개조', '시설 개선'];
 
     tr.innerHTML = `
       <td class="col-select center"><input type="checkbox" class="row-checkbox" data-id="${item.id}" ${isChecked ? 'checked' : ''}></td>
@@ -1501,10 +1504,22 @@ function renderScheduleTable() {
         ` : `<div class="cell-text-view" data-id="${item.id}" data-field="type">${getWorkTypeBadge(item.type)}</div>`}
       </td>
       <td class="col-subcat">
-        ${isEditingSubcat ? `<input type="text" class="table-input edit-control" data-id="${item.id}" data-field="subcat" value="${escapeHtml(item.subcat)}">` : `<div class="cell-text-view" data-id="${item.id}" data-field="subcat">${escapeHtml(item.subcat)}</div>`}
+        ${isEditingSubcat ? `
+          <select class="table-select edit-control" data-id="${item.id}" data-field="subcat">
+            ${[...new Set([...subcatOptions, item.subcat])].filter(Boolean).map(opt => `
+              <option value="${escapeHtml(opt)}" ${item.subcat === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>
+            `).join('')}
+          </select>
+        ` : `<div class="cell-text-view" data-id="${item.id}" data-field="subcat" title="클릭 시 드롭다운 선택">${escapeHtml(item.subcat)}</div>`}
       </td>
       <td class="col-utid">
-        <div class="cell-text-view ut-badge-container" data-id="${item.id}" data-field="utIds">${renderUtBadges(item.utIds)}</div>
+        ${isEditingUtIds ? `
+          <select class="table-select edit-control" data-id="${item.id}" data-field="utIds">
+            ${ALL_TARGET_ITEMS.map(t => `
+              <option value="${t.id}" ${(item.utIds || []).includes(t.id) ? 'selected' : ''}>[${t.id}] ${escapeHtml(t.name)}</option>
+            `).join('')}
+          </select>
+        ` : `<div class="cell-text-view ut-badge-container" data-id="${item.id}" data-field="utIds" title="클릭 시 드롭다운 선택">${renderUtBadges(item.utIds)}</div>`}
       </td>
       <td class="col-content">
         ${isEditingContent ? `<textarea class="table-input edit-control" data-id="${item.id}" data-field="content">${escapeHtml(item.content)}</textarea>` : `<div class="cell-text-view" data-id="${item.id}" data-field="content">${escapeHtml(item.content)}</div>`}
@@ -1695,7 +1710,7 @@ function initScheduleEvents() {
 
       // Cell Edit
       const cellView = e.target.closest('.cell-text-view');
-      if (cellView && cellView.dataset.field !== 'utIds') {
+      if (cellView) {
         editingCell = { rowId: cellView.dataset.id, field: cellView.dataset.field };
         renderScheduleTable();
       }
@@ -1723,7 +1738,12 @@ function initScheduleEvents() {
       if (editControl) {
         const target = schedules.find(s => s.id === editControl.dataset.id);
         if (target) {
-          target[editControl.dataset.field] = editControl.value;
+          const field = editControl.dataset.field;
+          if (field === 'utIds') {
+            target.utIds = [editControl.value];
+          } else {
+            target[field] = editControl.value;
+          }
           saveScheduleData();
         }
         editingCell = null;
