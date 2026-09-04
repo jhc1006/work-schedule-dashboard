@@ -1569,6 +1569,8 @@ function renderScheduleTable() {
     const isEditingSite = editingCell && editingCell.rowId === item.id && editingCell.field === 'site';
     const isEditingFab = editingCell && editingCell.rowId === item.id && editingCell.field === 'fab';
     const isEditingType = editingCell && editingCell.rowId === item.id && editingCell.field === 'type';
+    const isEditingSubcat = editingCell && editingCell.rowId === item.id && editingCell.field === 'subcat';
+    const isEditingUtIds = editingCell && editingCell.rowId === item.id && editingCell.field === 'utIds';
     const isEditingContent = editingCell && editingCell.rowId === item.id && editingCell.field === 'content';
 
     let imageCellHtml = '';
