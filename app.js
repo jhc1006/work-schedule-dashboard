@@ -287,14 +287,13 @@ async function switchTab(tabId) {
   const container = document.getElementById('tabPanelContainer');
   if (!container) return;
 
-  if (!tabHtmlCache[tabId]) {
-    try {
-      container.innerHTML = `<div style="padding: 40px; text-align: center; color: #64748b;">[${tabId}] 탭 서브 파일(tab_${tabId}.html)을 동적으로 불러오는 중...</div>`;
-      const res = await fetch(`./tab_${tabId}.html?v=20260904_7`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const html = await res.text();
-      tabHtmlCache[tabId] = html;
-    } catch (err) {
+  try {
+    const res = await fetch(`./tab_${tabId}.html?v=${Date.now()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const html = await res.text();
+    tabHtmlCache[tabId] = html;
+  } catch (err) {
+    if (!tabHtmlCache[tabId]) {
       container.innerHTML = `<div style="padding: 40px; text-align: center; color: #ef4444;">[오류] tab_${tabId}.html 서브 파일을 불러올 수 없습니다: ${err.message}</div>`;
       return;
     }
