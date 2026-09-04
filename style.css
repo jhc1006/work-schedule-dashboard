@@ -755,10 +755,181 @@ html, body {
 
 .table-input, .table-select {
   width: 100%;
-  padding: 4px 6px;
+  padding: 5px 8px;
   border: 1px solid var(--primary);
   border-radius: var(--radius-sm);
   font-size: 12px;
+  background-color: #ffffff;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Custom UT ID Multi-Select Dropdown Component
+   ========================================================================== */
+.custom-ut-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.ut-dropdown-trigger {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  background-color: #ffffff;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  min-height: 30px;
+}
+
+.ut-dropdown-trigger:focus,
+.ut-dropdown-trigger.open {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  background-color: #ffffff;
+}
+
+.ut-trigger-arrow {
+  transition: transform 0.2s ease;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.ut-dropdown-trigger.open .ut-trigger-arrow {
+  transform: rotate(180deg);
+}
+
+.ut-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 320px;
+  background: #ffffff;
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeInDown 0.15s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ut-search-wrapper {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: #f8fafc;
+}
+
+.ut-search-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border-dark);
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+}
+
+.ut-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.ut-options-list {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.ut-option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+  user-select: none;
+}
+
+.ut-option-item:hover {
+  background-color: #f1f5f9;
+}
+
+.ut-option-item.checked {
+  background-color: var(--primary-light);
+  font-weight: 600;
+}
+
+.ut-option-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.ut-option-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ut-checked-tag {
+  font-size: 10px;
+  background-color: var(--primary);
+  color: white;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: auto;
+  font-weight: 500;
+}
+
+.ut-dropdown-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background-color: #f8fafc;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.btn-text:hover {
+  text-decoration: underline;
+}
+
+.btn-text.btn-clear {
+  color: var(--text-muted);
 }
 
 /* Target Chips */

@@ -1402,6 +1402,121 @@ function renderUtBadges(selectedIds = []) {
   }).join('');
 }
 
+function getSortedUtOptions(selectedIds = [], keyword = '') {
+  let list = [...ALL_TARGET_ITEMS];
+  if (keyword) {
+    const kw = keyword.toLowerCase();
+    list = list.filter(e => e.name.toLowerCase().includes(kw) || e.id.toLowerCase().includes(kw));
+  }
+  return list.sort((a, b) => {
+    const aChecked = selectedIds.includes(a.id);
+    const bChecked = selectedIds.includes(b.id);
+    if (aChecked && !bChecked) return -1;
+    if (!aChecked && bChecked) return 1;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+function getUtTriggerText(selectedIds = []) {
+  if (!selectedIds || selectedIds.length === 0) {
+    return '<span style="color: var(--text-muted);">-- 작업대상 선택 --</span>';
+  }
+  const firstId = selectedIds[0];
+  const item = ALL_TARGET_ITEMS.find(e => e.id === firstId);
+  const firstName = item ? item.name.split(' (')[0] : firstId;
+
+  if (selectedIds.length === 1) {
+    return `[${firstId}] ${firstName}`;
+  }
+  return `[${firstId}] ${firstName} 외 ${selectedIds.length - 1}건`;
+}
+
+function createUtDropdownHtml(rowId, selectedIds = []) {
+  const triggerText = getUtTriggerText(selectedIds);
+  const sortedOptions = getSortedUtOptions(selectedIds);
+
+  const optionsHtml = sortedOptions.map(e => {
+    const isChecked = selectedIds.includes(e.id);
+    return `
+      <div class="ut-option-item ${isChecked ? 'checked' : ''}" data-row-id="${rowId}" data-ut-id="${e.id}">
+        <input type="checkbox" class="ut-option-checkbox" ${isChecked ? 'checked' : ''} tabindex="-1">
+        <span class="ut-option-label" title="${escapeHtml(e.name)}">[${e.id}] ${escapeHtml(e.name)}</span>
+        ${isChecked ? '<span class="ut-checked-tag">선택됨</span>' : ''}
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="custom-ut-dropdown" data-id="${rowId}">
+      <button type="button" class="ut-dropdown-trigger open" data-id="${rowId}">
+        <span class="ut-trigger-text">${triggerText}</span>
+        <svg class="ut-trigger-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <div class="ut-dropdown-menu" id="utMenu-${rowId}">
+        <div class="ut-search-wrapper">
+          <input type="text" class="ut-search-input" data-id="${rowId}" placeholder="설비/자재명 검색..." autocomplete="off">
+        </div>
+        <div class="ut-options-list" id="utList-${rowId}">
+          ${optionsHtml}
+        </div>
+        <div class="ut-dropdown-footer">
+          <button type="button" class="btn-text btn-ut-all" data-id="${rowId}">전체선택</button>
+          <button type="button" class="btn-text btn-clear btn-ut-clear" data-id="${rowId}">선택해제</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function updateUtOptionsList(rowId, keyword = '') {
+  const row = schedules.find(r => r.id === rowId);
+  if (!row) return;
+
+  const listContainer = document.getElementById(`utList-${rowId}`);
+  if (!listContainer) return;
+
+  const selectedIds = row.utIds || [];
+  const sortedOptions = getSortedUtOptions(selectedIds, keyword);
+
+  listContainer.innerHTML = sortedOptions.map(e => {
+    const isChecked = selectedIds.includes(e.id);
+    return `
+      <div class="ut-option-item ${isChecked ? 'checked' : ''}" data-row-id="${rowId}" data-ut-id="${e.id}">
+        <input type="checkbox" class="ut-option-checkbox" ${isChecked ? 'checked' : ''} tabindex="-1">
+        <span class="ut-option-label" title="${escapeHtml(e.name)}">[${e.id}] ${escapeHtml(e.name)}</span>
+        ${isChecked ? '<span class="ut-checked-tag">선택됨</span>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleUtItemSelection(rowId, utId) {
+  const row = schedules.find(r => r.id === rowId);
+  if (!row) return;
+
+  if (!row.utIds) row.utIds = [];
+
+  const idx = row.utIds.indexOf(utId);
+  if (idx > -1) {
+    row.utIds.splice(idx, 1);
+  } else {
+    row.utIds.push(utId);
+  }
+
+  saveScheduleData();
+
+  const triggerTextEl = document.querySelector(`.custom-ut-dropdown[data-id="${rowId}"] .ut-trigger-text`);
+  if (triggerTextEl) {
+    triggerTextEl.innerHTML = getUtTriggerText(row.utIds);
+  }
+
+  const searchInput = document.querySelector(`#utMenu-${rowId} .ut-search-input`);
+  updateUtOptionsList(rowId, searchInput ? searchInput.value : '');
+}
+
 function renderScheduleTable() {
   const tbody = document.getElementById('scheduleTableBody');
   if (!tbody) return;
@@ -1505,18 +1620,18 @@ function renderScheduleTable() {
         ` : `<div class="cell-text-view" data-id="${item.id}" data-field="type">${getWorkTypeBadge(item.type)}</div>`}
       </td>
       <td class="col-subcat">
-        <select class="table-select direct-change-control" data-id="${item.id}" data-field="subcat" title="작업구분 변경">
-          ${[...new Set([...subcatOptions, item.subcat])].filter(Boolean).map(opt => `
-            <option value="${escapeHtml(opt)}" ${item.subcat === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>
-          `).join('')}
-        </select>
+        ${isEditingSubcat ? `
+          <select class="table-select edit-control" data-id="${item.id}" data-field="subcat">
+            ${[...new Set([...subcatOptions, item.subcat])].filter(Boolean).map(opt => `
+              <option value="${escapeHtml(opt)}" ${item.subcat === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>
+            `).join('')}
+          </select>
+        ` : `<div class="cell-text-view" data-id="${item.id}" data-field="subcat" title="클릭 시 드롭다운 선택">${escapeHtml(item.subcat)}</div>`}
       </td>
       <td class="col-utid">
-        <select class="table-select direct-change-control" data-id="${item.id}" data-field="utIds" title="작업대상 변경">
-          ${ALL_TARGET_ITEMS.map(t => `
-            <option value="${t.id}" ${(item.utIds || []).includes(t.id) ? 'selected' : ''}>[${t.id}] ${escapeHtml(t.name)}</option>
-          `).join('')}
-        </select>
+        ${isEditingUtIds ? `
+          ${createUtDropdownHtml(item.id, item.utIds)}
+        ` : `<div class="cell-text-view ut-badge-container" data-id="${item.id}" data-field="utIds" title="클릭 시 드롭다운 선택">${renderUtBadges(item.utIds)}</div>`}
       </td>
       <td class="col-content">
         ${isEditingContent ? `<textarea class="table-input edit-control" data-id="${item.id}" data-field="content">${escapeHtml(item.content)}</textarea>` : `<div class="cell-text-view" data-id="${item.id}" data-field="content">${escapeHtml(item.content)}</div>`}
@@ -1669,7 +1784,49 @@ function initScheduleEvents() {
   const tbody = document.getElementById('scheduleTableBody');
   if (tbody) {
     tbody.onclick = (e) => {
-      // Trigger Preview
+      // 1. UT ID Option Item Clicked inside dropdown
+      const optionItem = e.target.closest('.ut-option-item');
+      if (optionItem) {
+        e.stopPropagation();
+        const rowId = optionItem.dataset.rowId;
+        const utId = optionItem.dataset.utId;
+        toggleUtItemSelection(rowId, utId);
+        return;
+      }
+
+      // 2. Select All Button in Dropdown Footer
+      const btnAll = e.target.closest('.btn-ut-all');
+      if (btnAll) {
+        e.stopPropagation();
+        const rowId = btnAll.dataset.id;
+        const row = schedules.find(r => r.id === rowId);
+        if (row) {
+          row.utIds = ALL_TARGET_ITEMS.map(item => item.id);
+          saveScheduleData();
+          updateUtOptionsList(rowId);
+          const triggerTextEl = document.querySelector(`.custom-ut-dropdown[data-id="${rowId}"] .ut-trigger-text`);
+          if (triggerTextEl) triggerTextEl.innerHTML = getUtTriggerText(row.utIds);
+        }
+        return;
+      }
+
+      // 3. Clear Selection Button in Dropdown Footer
+      const btnClear = e.target.closest('.btn-ut-clear');
+      if (btnClear) {
+        e.stopPropagation();
+        const rowId = btnClear.dataset.id;
+        const row = schedules.find(r => r.id === rowId);
+        if (row) {
+          row.utIds = [];
+          saveScheduleData();
+          updateUtOptionsList(rowId);
+          const triggerTextEl = document.querySelector(`.custom-ut-dropdown[data-id="${rowId}"] .ut-trigger-text`);
+          if (triggerTextEl) triggerTextEl.innerHTML = getUtTriggerText(row.utIds);
+        }
+        return;
+      }
+
+      // 4. Trigger Preview
       const previewBtn = e.target.closest('.btn-trigger-preview');
       if (previewBtn) {
         const item = schedules.find(s => s.id === previewBtn.dataset.id);
@@ -1684,7 +1841,7 @@ function initScheduleEvents() {
         return;
       }
 
-      // Delete Image
+      // 5. Delete Image
       const delImgBtn = e.target.closest('.btn-delete-image');
       if (delImgBtn) {
         if (confirm('등록된 현장 사진을 삭제하시겠습니까?')) {
@@ -1698,7 +1855,7 @@ function initScheduleEvents() {
         return;
       }
 
-      // Delete Row
+      // 6. Delete Row
       const deleteBtn = e.target.closest('.btn-delete-row');
       if (deleteBtn) {
         if (confirm('해당 작업 일정을 삭제하시겠습니까?')) {
@@ -1709,11 +1866,20 @@ function initScheduleEvents() {
         return;
       }
 
-      // Cell Edit
+      // 7. Cell Edit
       const cellView = e.target.closest('.cell-text-view');
       if (cellView) {
         editingCell = { rowId: cellView.dataset.id, field: cellView.dataset.field };
         renderScheduleTable();
+      }
+    };
+
+    // Filter search input inside UT dropdown menu
+    tbody.oninput = (e) => {
+      const searchInput = e.target.closest('.ut-search-input');
+      if (searchInput) {
+        const rowId = searchInput.dataset.id;
+        updateUtOptionsList(rowId, searchInput.value);
       }
     };
 
