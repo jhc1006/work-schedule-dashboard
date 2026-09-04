@@ -97,6 +97,7 @@ let selectedMaterialRowIds = new Set();
 let editingCell = null;
 let editingAttendanceCell = null;
 let editingMaterialCell = null;
+let rowCategoryTabs = {};
 
 // ==========================================================================
 // Initialization & Global Event Listeners
@@ -1468,9 +1469,12 @@ function getUtTriggerText(selectedIds = []) {
 
 function createUtDropdownHtml(rowId, selectedIds = [], currentType = '', currentSubcat = '') {
   const ids = ensureUtIdsArray(selectedIds);
-  const recCategory = getRecommendedCategory(currentType, currentSubcat);
+  if (!rowCategoryTabs[rowId]) {
+    rowCategoryTabs[rowId] = getRecommendedCategory(currentType, currentSubcat);
+  }
+  const activeCategory = rowCategoryTabs[rowId];
   const triggerText = getUtTriggerText(ids);
-  const sortedOptions = getSortedUtOptions(ids, recCategory);
+  const sortedOptions = getSortedUtOptions(ids, activeCategory);
 
   const optionsHtml = sortedOptions.map(e => {
     const isChecked = ids.includes(e.id);
@@ -1485,14 +1489,17 @@ function createUtDropdownHtml(rowId, selectedIds = [], currentType = '', current
 
   return `
     <div class="custom-ut-dropdown" data-id="${rowId}">
-      <button type="button" class="ut-dropdown-trigger open" data-id="${rowId}">
-        <span class="ut-trigger-text">${triggerText}</span>
-        <svg class="ut-trigger-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
       <div class="ut-dropdown-menu" id="utMenu-${rowId}">
+        <div class="ut-dropdown-header">
+          <span class="ut-header-title">📋 작업대상 선택 (${ids.length > 0 ? ids.length + '개 선택됨' : '미선택'})</span>
+          <button type="button" class="btn-ut-close" data-id="${rowId}">✕ 닫기</button>
+        </div>
+        <div class="ut-category-tabs">
+          <button type="button" class="ut-tab-btn ${activeCategory === '설비' ? 'active' : ''}" data-row-id="${rowId}" data-cat="설비">설비</button>
+          <button type="button" class="ut-tab-btn ${activeCategory === '자재입출고' ? 'active' : ''}" data-row-id="${rowId}" data-cat="자재입출고">자재입출고</button>
+          <button type="button" class="ut-tab-btn ${activeCategory === '시설/인프라' ? 'active' : ''}" data-row-id="${rowId}" data-cat="시설/인프라">시설/인프라</button>
+          <button type="button" class="ut-tab-btn ${activeCategory === '전체' ? 'active' : ''}" data-row-id="${rowId}" data-cat="전체">전체</button>
+        </div>
         <div class="ut-search-wrapper">
           <input type="text" class="ut-search-input" data-id="${rowId}" placeholder="설비/자재명 검색..." autocomplete="off">
         </div>
@@ -1500,8 +1507,11 @@ function createUtDropdownHtml(rowId, selectedIds = [], currentType = '', current
           ${optionsHtml}
         </div>
         <div class="ut-dropdown-footer">
-          <button type="button" class="btn-text btn-ut-all" data-id="${rowId}">전체선택</button>
-          <button type="button" class="btn-text btn-clear btn-ut-clear" data-id="${rowId}">선택해제</button>
+          <div>
+            <button type="button" class="btn-text btn-ut-all" data-id="${rowId}">전체선택</button>
+            <button type="button" class="btn-text btn-clear btn-ut-clear" data-id="${rowId}">선택해제</button>
+          </div>
+          <button type="button" class="btn-ut-close" data-id="${rowId}" style="background:var(--success); color:#fff;">✓ 완료</button>
         </div>
       </div>
     </div>
@@ -1516,8 +1526,8 @@ function updateUtOptionsList(rowId, keyword = '') {
   if (!listContainer) return;
 
   const selectedIds = ensureUtIdsArray(row.utIds);
-  const recCategory = getRecommendedCategory(row.type, row.subcat);
-  const sortedOptions = getSortedUtOptions(selectedIds, recCategory, keyword);
+  const activeCategory = rowCategoryTabs[rowId] || getRecommendedCategory(row.type, row.subcat);
+  const sortedOptions = getSortedUtOptions(selectedIds, activeCategory, keyword);
 
   listContainer.innerHTML = sortedOptions.map(e => {
     const isChecked = selectedIds.includes(e.id);
@@ -1829,6 +1839,34 @@ function initScheduleEvents() {
   const tbody = document.getElementById('scheduleTableBody');
   if (tbody) {
     tbody.onclick = (e) => {
+      // 0. Category Tab Clicked inside dropdown
+      const tabBtn = e.target.closest('.ut-tab-btn');
+      if (tabBtn) {
+        e.stopPropagation();
+        const rowId = tabBtn.dataset.rowId;
+        const cat = tabBtn.dataset.cat;
+        rowCategoryTabs[rowId] = cat;
+
+        const menu = document.getElementById(`utMenu-${rowId}`);
+        if (menu) {
+          menu.querySelectorAll('.ut-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.cat === cat);
+          });
+        }
+        const searchInput = document.querySelector(`#utMenu-${rowId} .ut-search-input`);
+        updateUtOptionsList(rowId, searchInput ? searchInput.value : '');
+        return;
+      }
+
+      // 0-1. Dropdown Close / Done Button
+      const closeBtn = e.target.closest('.btn-ut-close');
+      if (closeBtn) {
+        e.stopPropagation();
+        editingCell = null;
+        renderScheduleTable();
+        return;
+      }
+
       // 1. UT ID Option Item Clicked inside dropdown
       const optionItem = e.target.closest('.ut-option-item');
       if (optionItem) {
@@ -1846,7 +1884,9 @@ function initScheduleEvents() {
         const rowId = btnAll.dataset.id;
         const row = schedules.find(r => r.id === rowId);
         if (row) {
-          row.utIds = ALL_TARGET_ITEMS.map(item => item.id);
+          const activeCat = rowCategoryTabs[rowId] || getRecommendedCategory(row.type, row.subcat);
+          const currentCatItems = getSortedUtOptions([], activeCat).map(i => i.id);
+          row.utIds = Array.from(new Set([...(row.utIds || []), ...currentCatItems]));
           saveScheduleData();
           updateUtOptionsList(rowId);
           const triggerTextEl = document.querySelector(`.custom-ut-dropdown[data-id="${rowId}"] .ut-trigger-text`);
@@ -1914,7 +1954,14 @@ function initScheduleEvents() {
       // 7. Cell Edit
       const cellView = e.target.closest('.cell-text-view');
       if (cellView) {
-        editingCell = { rowId: cellView.dataset.id, field: cellView.dataset.field };
+        const rowId = cellView.dataset.id;
+        const field = cellView.dataset.field;
+        const row = schedules.find(r => r.id === rowId);
+        if (row) {
+          // Sync recommended target category when opening utIds cell
+          rowCategoryTabs[rowId] = getRecommendedCategory(row.type, row.subcat);
+        }
+        editingCell = { rowId, field };
         renderScheduleTable();
       }
     };
@@ -1928,7 +1975,7 @@ function initScheduleEvents() {
       }
     };
 
-    // File Input Upload Event Handler
+    // File Input Upload Event Handler & Edit Controls Change Handler
     tbody.onchange = (e) => {
       const fileInput = e.target.closest('.schedule-file-input');
       if (fileInput && fileInput.files && fileInput.files[0]) {
@@ -1951,7 +1998,13 @@ function initScheduleEvents() {
         const target = schedules.find(s => s.id === directControl.dataset.id);
         if (target) {
           const field = directControl.dataset.field;
-          if (field === 'utIds') {
+          if (field === 'type' || field === 'subcat') {
+            if (target[field] !== directControl.value) {
+              target[field] = directControl.value;
+              target.utIds = []; // 작업유형/작업구분 변경 시 작업대상 초기화!
+              rowCategoryTabs[target.id] = getRecommendedCategory(target.type, target.subcat);
+            }
+          } else if (field === 'utIds') {
             target.utIds = [directControl.value];
           } else {
             target[field] = directControl.value;
@@ -1967,7 +2020,13 @@ function initScheduleEvents() {
         const target = schedules.find(s => s.id === editControl.dataset.id);
         if (target) {
           const field = editControl.dataset.field;
-          if (field === 'utIds') {
+          if (field === 'type' || field === 'subcat') {
+            if (target[field] !== editControl.value) {
+              target[field] = editControl.value;
+              target.utIds = []; // 작업유형/작업구분 변경 시 작업대상 초기화!
+              rowCategoryTabs[target.id] = getRecommendedCategory(target.type, target.subcat);
+            }
+          } else if (field === 'utIds') {
             target.utIds = [editControl.value];
           } else {
             target[field] = editControl.value;
