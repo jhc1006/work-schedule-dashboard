@@ -158,11 +158,16 @@ function loadAllData() {
       const parsed = JSON.parse(savedSchedule);
       schedules = parsed.map(item => ({
         ...item,
-        utIds: Array.isArray(item.utIds) ? item.utIds : (item.utId ? [item.utId] : []),
+        site: item.site || '서울본사',
+        fab: item.fab || '',
+        type: item.type || 'PM',
+        subcat: item.subcat || '정기 점검',
+        utIds: ensureUtIdsArray(item.utIds || item.utId),
+        content: item.content || '',
         imageUrl: item.imageUrl !== undefined ? item.imageUrl : null
       }));
-    } catch (e) { schedules = [...INITIAL_SCHEDULE_DATA]; }
-  } else { schedules = [...INITIAL_SCHEDULE_DATA]; }
+    } catch (e) { schedules = INITIAL_SCHEDULE_DATA.map(item => ({ ...item, utIds: ensureUtIdsArray(item.utIds) })); }
+  } else { schedules = INITIAL_SCHEDULE_DATA.map(item => ({ ...item, utIds: ensureUtIdsArray(item.utIds) })); }
 
   // Attendance
   const savedAttendance = localStorage.getItem(ATTENDANCE_STORAGE_KEY);
@@ -227,6 +232,14 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function ensureUtIdsArray(utIds) {
+  if (Array.isArray(utIds)) return utIds;
+  if (typeof utIds === 'string' && utIds.trim()) {
+    return utIds.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return [];
 }
 
 // ==========================================================================
@@ -525,7 +538,7 @@ function initImportScheduleModalEvents() {
             fab: item.fab,
             type: item.type,
             subcat: item.subcat,
-            utIds: [...(item.utIds || [])],
+            utIds: ensureUtIdsArray(item.utIds || item.utId),
             content: item.content,
             imageUrl: item.imageUrl || null
           });
@@ -1388,14 +1401,15 @@ function getWorkTypeBadge(type) {
 }
 
 function renderUtBadges(selectedIds = []) {
-  if (!selectedIds || selectedIds.length === 0) return '<span class="text-placeholder">선택</span>';
-  return selectedIds.map(id => {
+  const ids = ensureUtIdsArray(selectedIds);
+  if (ids.length === 0) return '<span class="text-placeholder">선택</span>';
+  return ids.map(id => {
     const item = ALL_TARGET_ITEMS.find(e => e.id === id);
     const name = item ? item.name.split(' (')[0] : id;
     const isMaterial = item && item.category === '자재입출고';
     return `
       <span class="ut-chip" style="${isMaterial ? 'background:#faf5ff; border-color:#e9d5ff;' : ''}">
-        <span class="ut-chip-id" style="${isMaterial ? 'background:#f3e8ff; color:#7e22ce;' : ''}">${id}</span>
+        <span class="ut-chip-id" style="${isMaterial ? 'background:#f3e8ff; color:#7e22ce;' : ''}">${escapeHtml(id)}</span>
         <span>${escapeHtml(name)}</span>
       </span>
     `;
@@ -1403,14 +1417,15 @@ function renderUtBadges(selectedIds = []) {
 }
 
 function getSortedUtOptions(selectedIds = [], keyword = '') {
+  const ids = ensureUtIdsArray(selectedIds);
   let list = [...ALL_TARGET_ITEMS];
   if (keyword) {
     const kw = keyword.toLowerCase();
-    list = list.filter(e => e.name.toLowerCase().includes(kw) || e.id.toLowerCase().includes(kw));
+    list = list.filter(e => (e.name || '').toLowerCase().includes(kw) || (e.id || '').toLowerCase().includes(kw));
   }
   return list.sort((a, b) => {
-    const aChecked = selectedIds.includes(a.id);
-    const bChecked = selectedIds.includes(b.id);
+    const aChecked = ids.includes(a.id);
+    const bChecked = ids.includes(b.id);
     if (aChecked && !bChecked) return -1;
     if (!aChecked && bChecked) return 1;
     return a.id.localeCompare(b.id);
@@ -1418,25 +1433,27 @@ function getSortedUtOptions(selectedIds = [], keyword = '') {
 }
 
 function getUtTriggerText(selectedIds = []) {
-  if (!selectedIds || selectedIds.length === 0) {
+  const ids = ensureUtIdsArray(selectedIds);
+  if (ids.length === 0) {
     return '<span style="color: var(--text-muted);">-- 작업대상 선택 --</span>';
   }
-  const firstId = selectedIds[0];
+  const firstId = ids[0];
   const item = ALL_TARGET_ITEMS.find(e => e.id === firstId);
   const firstName = item ? item.name.split(' (')[0] : firstId;
 
-  if (selectedIds.length === 1) {
-    return `[${firstId}] ${firstName}`;
+  if (ids.length === 1) {
+    return `[${escapeHtml(firstId)}] ${escapeHtml(firstName)}`;
   }
-  return `[${firstId}] ${firstName} 외 ${selectedIds.length - 1}건`;
+  return `[${escapeHtml(firstId)}] ${escapeHtml(firstName)} 외 ${ids.length - 1}건`;
 }
 
 function createUtDropdownHtml(rowId, selectedIds = []) {
-  const triggerText = getUtTriggerText(selectedIds);
-  const sortedOptions = getSortedUtOptions(selectedIds);
+  const ids = ensureUtIdsArray(selectedIds);
+  const triggerText = getUtTriggerText(ids);
+  const sortedOptions = getSortedUtOptions(ids);
 
   const optionsHtml = sortedOptions.map(e => {
-    const isChecked = selectedIds.includes(e.id);
+    const isChecked = ids.includes(e.id);
     return `
       <div class="ut-option-item ${isChecked ? 'checked' : ''}" data-row-id="${rowId}" data-ut-id="${e.id}">
         <input type="checkbox" class="ut-option-checkbox" ${isChecked ? 'checked' : ''} tabindex="-1">
@@ -1478,7 +1495,7 @@ function updateUtOptionsList(rowId, keyword = '') {
   const listContainer = document.getElementById(`utList-${rowId}`);
   if (!listContainer) return;
 
-  const selectedIds = row.utIds || [];
+  const selectedIds = ensureUtIdsArray(row.utIds);
   const sortedOptions = getSortedUtOptions(selectedIds, keyword);
 
   listContainer.innerHTML = sortedOptions.map(e => {
@@ -1497,7 +1514,7 @@ function toggleUtItemSelection(rowId, utId) {
   const row = schedules.find(r => r.id === rowId);
   if (!row) return;
 
-  if (!row.utIds) row.utIds = [];
+  row.utIds = ensureUtIdsArray(row.utIds);
 
   const idx = row.utIds.indexOf(utId);
   if (idx > -1) {
@@ -1529,24 +1546,25 @@ function renderScheduleTable() {
   const global = getGlobalSearchState();
 
   const filtered = schedules.filter(item => {
+    const itemUtIds = ensureUtIdsArray(item.utIds || item.utId);
     if (filterSite && item.site !== filterSite) return false;
     if (filterType && item.type !== filterType) return false;
     if (filterSubcatVal && item.subcat !== filterSubcatVal) return false;
-    if (filterUtIdVal && !(item.utIds || []).includes(filterUtIdVal)) return false;
+    if (filterUtIdVal && !itemUtIds.includes(filterUtIdVal)) return false;
 
     if (global.site && item.site !== global.site) return false;
     if (global.deptOrType && ['PM','BM','CM','자재입출고'].includes(global.deptOrType) && item.type !== global.deptOrType) return false;
 
     const kw = global.keyword || searchKeyword;
     if (kw) {
-      const matchSite = item.site.toLowerCase().includes(kw);
-      const matchFab = item.fab.toLowerCase().includes(kw);
-      const matchType = item.type.toLowerCase().includes(kw);
-      const matchSubcat = item.subcat.toLowerCase().includes(kw);
-      const matchContent = item.content.toLowerCase().includes(kw);
-      const matchTarget = (item.utIds || []).some(utId => {
+      const matchSite = (item.site || '').toLowerCase().includes(kw);
+      const matchFab = (item.fab || '').toLowerCase().includes(kw);
+      const matchType = (item.type || '').toLowerCase().includes(kw);
+      const matchSubcat = (item.subcat || '').toLowerCase().includes(kw);
+      const matchContent = (item.content || '').toLowerCase().includes(kw);
+      const matchTarget = itemUtIds.some(utId => {
         const targetItem = ALL_TARGET_ITEMS.find(e => e.id === utId);
-        return targetItem ? targetItem.name.toLowerCase().includes(kw) || targetItem.id.toLowerCase().includes(kw) : false;
+        return targetItem ? (targetItem.name || '').toLowerCase().includes(kw) || (targetItem.id || '').toLowerCase().includes(kw) : false;
       });
       if (!matchSite && !matchFab && !matchType && !matchSubcat && !matchContent && !matchTarget) return false;
     }
@@ -1562,86 +1580,90 @@ function renderScheduleTable() {
   }
 
   filtered.forEach((item) => {
-    const tr = document.createElement('tr');
-    tr.dataset.id = item.id;
-    const isChecked = selectedScheduleRowIds.has(item.id);
+    try {
+      const tr = document.createElement('tr');
+      tr.dataset.id = item.id;
+      const isChecked = selectedScheduleRowIds.has(item.id);
 
-    const isEditingSite = editingCell && editingCell.rowId === item.id && editingCell.field === 'site';
-    const isEditingFab = editingCell && editingCell.rowId === item.id && editingCell.field === 'fab';
-    const isEditingType = editingCell && editingCell.rowId === item.id && editingCell.field === 'type';
-    const isEditingSubcat = editingCell && editingCell.rowId === item.id && editingCell.field === 'subcat';
-    const isEditingUtIds = editingCell && editingCell.rowId === item.id && editingCell.field === 'utIds';
-    const isEditingContent = editingCell && editingCell.rowId === item.id && editingCell.field === 'content';
+      const isEditingSite = editingCell && editingCell.rowId === item.id && editingCell.field === 'site';
+      const isEditingFab = editingCell && editingCell.rowId === item.id && editingCell.field === 'fab';
+      const isEditingType = editingCell && editingCell.rowId === item.id && editingCell.field === 'type';
+      const isEditingSubcat = editingCell && editingCell.rowId === item.id && editingCell.field === 'subcat';
+      const isEditingUtIds = editingCell && editingCell.rowId === item.id && editingCell.field === 'utIds';
+      const isEditingContent = editingCell && editingCell.rowId === item.id && editingCell.field === 'content';
 
-    let imageCellHtml = '';
-    if (item.imageUrl) {
-      imageCellHtml = `
-        <div class="schedule-img-cell">
-          <img src="${item.imageUrl}" class="schedule-img-thumb btn-trigger-preview" data-id="${item.id}" alt="작업 현장 사진" title="클릭 시 확대 미리보기">
-          <button type="button" class="btn-img-preview btn-trigger-preview" data-id="${item.id}">🔍 미리보기</button>
-          <button type="button" class="btn-img-delete btn-delete-image" data-id="${item.id}" title="이미지 삭제">✕</button>
-        </div>
+      let imageCellHtml = '';
+      if (item.imageUrl) {
+        imageCellHtml = `
+          <div class="schedule-img-cell">
+            <img src="${item.imageUrl}" class="schedule-img-thumb btn-trigger-preview" data-id="${item.id}" alt="작업 현장 사진" title="클릭 시 확대 미리보기">
+            <button type="button" class="btn-img-preview btn-trigger-preview" data-id="${item.id}">🔍 미리보기</button>
+            <button type="button" class="btn-img-delete btn-delete-image" data-id="${item.id}" title="이미지 삭제">✕</button>
+          </div>
+        `;
+      } else {
+        imageCellHtml = `
+          <div class="schedule-img-cell">
+            <label class="btn-img-upload">
+              📷 등록
+              <input type="file" class="schedule-file-input" data-id="${item.id}" accept="image/*" style="display:none;">
+            </label>
+          </div>
+        `;
+      }
+
+      const subcatOptions = ['정기 점검', '실외기 점검', '자재 입고', '원자재 입고', '파렛트 출고', '부품 출하', '긴급 수리', '소방 점검', '개선 개조', '시설 개선'];
+
+      tr.innerHTML = `
+        <td class="col-select center"><input type="checkbox" class="row-checkbox" data-id="${item.id}" ${isChecked ? 'checked' : ''}></td>
+        <td class="col-site">
+          ${isEditingSite ? `
+            <select class="table-select edit-control" data-id="${item.id}" data-field="site">
+              <option value="서울본사" ${item.site === '서울본사' ? 'selected' : ''}>서울본사</option>
+              <option value="판교센터" ${item.site === '판교센터' ? 'selected' : ''}>판교센터</option>
+              <option value="부산센터" ${item.site === '부산센터' ? 'selected' : ''}>부산센터</option>
+              <option value="대구센터" ${item.site === '대구센터' ? 'selected' : ''}>대구센터</option>
+            </select>
+          ` : `<div class="cell-text-view" data-id="${item.id}" data-field="site">${escapeHtml(item.site)}</div>`}
+        </td>
+        <td class="col-fab">
+          ${isEditingFab ? `<input type="text" class="table-input edit-control" data-id="${item.id}" data-field="fab" value="${escapeHtml(item.fab)}">` : `<div class="cell-text-view" data-id="${item.id}" data-field="fab">${escapeHtml(item.fab)}</div>`}
+        </td>
+        <td class="col-type">
+          ${isEditingType ? `
+            <select class="table-select edit-control" data-id="${item.id}" data-field="type">
+              <option value="PM" ${item.type === 'PM' ? 'selected' : ''}>PM (예방보전)</option>
+              <option value="BM" ${item.type === 'BM' ? 'selected' : ''}>BM (고장수리)</option>
+              <option value="CM" ${item.type === 'CM' ? 'selected' : ''}>CM (시설개선)</option>
+              <option value="자재입출고" ${item.type === '자재입출고' ? 'selected' : ''}>자재입출고</option>
+              <option value="점검" ${item.type === '점검' ? 'selected' : ''}>정기 점검</option>
+            </select>
+          ` : `<div class="cell-text-view" data-id="${item.id}" data-field="type">${getWorkTypeBadge(item.type)}</div>`}
+        </td>
+        <td class="col-subcat">
+          ${isEditingSubcat ? `
+            <select class="table-select edit-control" data-id="${item.id}" data-field="subcat">
+              ${[...new Set([...subcatOptions, item.subcat])].filter(Boolean).map(opt => `
+                <option value="${escapeHtml(opt)}" ${item.subcat === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>
+              `).join('')}
+            </select>
+          ` : `<div class="cell-text-view" data-id="${item.id}" data-field="subcat" title="클릭 시 드롭다운 선택">${escapeHtml(item.subcat)}</div>`}
+        </td>
+        <td class="col-utid">
+          ${isEditingUtIds ? `
+            ${createUtDropdownHtml(item.id, item.utIds)}
+          ` : `<div class="cell-text-view ut-badge-container" data-id="${item.id}" data-field="utIds" title="클릭 시 드롭다운 선택">${renderUtBadges(item.utIds)}</div>`}
+        </td>
+        <td class="col-content">
+          ${isEditingContent ? `<textarea class="table-input edit-control" data-id="${item.id}" data-field="content">${escapeHtml(item.content)}</textarea>` : `<div class="cell-text-view" data-id="${item.id}" data-field="content">${escapeHtml(item.content)}</div>`}
+        </td>
+        <td class="col-img center">${imageCellHtml}</td>
+        <td class="col-action center"><button type="button" class="btn btn-sm btn-danger-outline btn-delete-row" data-id="${item.id}">삭제</button></td>
       `;
-    } else {
-      imageCellHtml = `
-        <div class="schedule-img-cell">
-          <label class="btn-img-upload">
-            📷 등록
-            <input type="file" class="schedule-file-input" data-id="${item.id}" accept="image/*" style="display:none;">
-          </label>
-        </div>
-      `;
+      tbody.appendChild(tr);
+    } catch (err) {
+      console.error('Error rendering schedule row:', item, err);
     }
-
-    const subcatOptions = ['정기 점검', '실외기 점검', '자재 입고', '원자재 입고', '파렛트 출고', '부품 출하', '긴급 수리', '소방 점검', '개선 개조', '시설 개선'];
-
-    tr.innerHTML = `
-      <td class="col-select center"><input type="checkbox" class="row-checkbox" data-id="${item.id}" ${isChecked ? 'checked' : ''}></td>
-      <td class="col-site">
-        ${isEditingSite ? `
-          <select class="table-select edit-control" data-id="${item.id}" data-field="site">
-            <option value="서울본사" ${item.site === '서울본사' ? 'selected' : ''}>서울본사</option>
-            <option value="판교센터" ${item.site === '판교센터' ? 'selected' : ''}>판교센터</option>
-            <option value="부산센터" ${item.site === '부산센터' ? 'selected' : ''}>부산센터</option>
-            <option value="대구센터" ${item.site === '대구센터' ? 'selected' : ''}>대구센터</option>
-          </select>
-        ` : `<div class="cell-text-view" data-id="${item.id}" data-field="site">${escapeHtml(item.site)}</div>`}
-      </td>
-      <td class="col-fab">
-        ${isEditingFab ? `<input type="text" class="table-input edit-control" data-id="${item.id}" data-field="fab" value="${escapeHtml(item.fab)}">` : `<div class="cell-text-view" data-id="${item.id}" data-field="fab">${escapeHtml(item.fab)}</div>`}
-      </td>
-      <td class="col-type">
-        ${isEditingType ? `
-          <select class="table-select edit-control" data-id="${item.id}" data-field="type">
-            <option value="PM" ${item.type === 'PM' ? 'selected' : ''}>PM (예방보전)</option>
-            <option value="BM" ${item.type === 'BM' ? 'selected' : ''}>BM (고장수리)</option>
-            <option value="CM" ${item.type === 'CM' ? 'selected' : ''}>CM (시설개선)</option>
-            <option value="자재입출고" ${item.type === '자재입출고' ? 'selected' : ''}>자재입출고</option>
-            <option value="점검" ${item.type === '점검' ? 'selected' : ''}>정기 점검</option>
-          </select>
-        ` : `<div class="cell-text-view" data-id="${item.id}" data-field="type">${getWorkTypeBadge(item.type)}</div>`}
-      </td>
-      <td class="col-subcat">
-        ${isEditingSubcat ? `
-          <select class="table-select edit-control" data-id="${item.id}" data-field="subcat">
-            ${[...new Set([...subcatOptions, item.subcat])].filter(Boolean).map(opt => `
-              <option value="${escapeHtml(opt)}" ${item.subcat === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>
-            `).join('')}
-          </select>
-        ` : `<div class="cell-text-view" data-id="${item.id}" data-field="subcat" title="클릭 시 드롭다운 선택">${escapeHtml(item.subcat)}</div>`}
-      </td>
-      <td class="col-utid">
-        ${isEditingUtIds ? `
-          ${createUtDropdownHtml(item.id, item.utIds)}
-        ` : `<div class="cell-text-view ut-badge-container" data-id="${item.id}" data-field="utIds" title="클릭 시 드롭다운 선택">${renderUtBadges(item.utIds)}</div>`}
-      </td>
-      <td class="col-content">
-        ${isEditingContent ? `<textarea class="table-input edit-control" data-id="${item.id}" data-field="content">${escapeHtml(item.content)}</textarea>` : `<div class="cell-text-view" data-id="${item.id}" data-field="content">${escapeHtml(item.content)}</div>`}
-      </td>
-      <td class="col-img center">${imageCellHtml}</td>
-      <td class="col-action center"><button type="button" class="btn btn-sm btn-danger-outline btn-delete-row" data-id="${item.id}">삭제</button></td>
-    `;
-    tbody.appendChild(tr);
   });
 
   updateScheduleStats(filtered.length);
