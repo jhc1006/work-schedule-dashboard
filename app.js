@@ -1410,11 +1410,15 @@ function renderScheduleTable() {
   const searchKeyword = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
   const filterSite = document.getElementById('filterSite')?.value || '';
   const filterType = document.getElementById('filterType')?.value || '';
+  const filterSubcatVal = document.getElementById('filterSubcat')?.value || '';
+  const filterUtIdVal = document.getElementById('filterUtId')?.value || '';
   const global = getGlobalSearchState();
 
   const filtered = schedules.filter(item => {
     if (filterSite && item.site !== filterSite) return false;
     if (filterType && item.type !== filterType) return false;
+    if (filterSubcatVal && item.subcat !== filterSubcatVal) return false;
+    if (filterUtIdVal && !(item.utIds || []).includes(filterUtIdVal)) return false;
 
     if (global.site && item.site !== global.site) return false;
     if (global.deptOrType && ['PM','BM','CM','자재입출고'].includes(global.deptOrType) && item.type !== global.deptOrType) return false;
@@ -1451,8 +1455,6 @@ function renderScheduleTable() {
     const isEditingSite = editingCell && editingCell.rowId === item.id && editingCell.field === 'site';
     const isEditingFab = editingCell && editingCell.rowId === item.id && editingCell.field === 'fab';
     const isEditingType = editingCell && editingCell.rowId === item.id && editingCell.field === 'type';
-    const isEditingSubcat = editingCell && editingCell.rowId === item.id && editingCell.field === 'subcat';
-    const isEditingUtIds = editingCell && editingCell.rowId === item.id && editingCell.field === 'utIds';
     const isEditingContent = editingCell && editingCell.rowId === item.id && editingCell.field === 'content';
 
     let imageCellHtml = '';
@@ -1504,22 +1506,18 @@ function renderScheduleTable() {
         ` : `<div class="cell-text-view" data-id="${item.id}" data-field="type">${getWorkTypeBadge(item.type)}</div>`}
       </td>
       <td class="col-subcat">
-        ${isEditingSubcat ? `
-          <select class="table-select edit-control" data-id="${item.id}" data-field="subcat">
-            ${[...new Set([...subcatOptions, item.subcat])].filter(Boolean).map(opt => `
-              <option value="${escapeHtml(opt)}" ${item.subcat === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>
-            `).join('')}
-          </select>
-        ` : `<div class="cell-text-view" data-id="${item.id}" data-field="subcat" title="클릭 시 드롭다운 선택">${escapeHtml(item.subcat)}</div>`}
+        <select class="table-select direct-change-control" data-id="${item.id}" data-field="subcat" title="작업구분 변경">
+          ${[...new Set([...subcatOptions, item.subcat])].filter(Boolean).map(opt => `
+            <option value="${escapeHtml(opt)}" ${item.subcat === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>
+          `).join('')}
+        </select>
       </td>
       <td class="col-utid">
-        ${isEditingUtIds ? `
-          <select class="table-select edit-control" data-id="${item.id}" data-field="utIds">
-            ${ALL_TARGET_ITEMS.map(t => `
-              <option value="${t.id}" ${(item.utIds || []).includes(t.id) ? 'selected' : ''}>[${t.id}] ${escapeHtml(t.name)}</option>
-            `).join('')}
-          </select>
-        ` : `<div class="cell-text-view ut-badge-container" data-id="${item.id}" data-field="utIds" title="클릭 시 드롭다운 선택">${renderUtBadges(item.utIds)}</div>`}
+        <select class="table-select direct-change-control" data-id="${item.id}" data-field="utIds" title="작업대상 변경">
+          ${ALL_TARGET_ITEMS.map(t => `
+            <option value="${t.id}" ${(item.utIds || []).includes(t.id) ? 'selected' : ''}>[${t.id}] ${escapeHtml(t.name)}</option>
+          `).join('')}
+        </select>
       </td>
       <td class="col-content">
         ${isEditingContent ? `<textarea class="table-input edit-control" data-id="${item.id}" data-field="content">${escapeHtml(item.content)}</textarea>` : `<div class="cell-text-view" data-id="${item.id}" data-field="content">${escapeHtml(item.content)}</div>`}
@@ -1544,6 +1542,8 @@ function initScheduleEvents() {
   const searchInput = document.getElementById('searchInput');
   const filterSite = document.getElementById('filterSite');
   const filterType = document.getElementById('filterType');
+  const filterSubcat = document.getElementById('filterSubcat');
+  const filterUtId = document.getElementById('filterUtId');
 
   const btnImport = document.getElementById('btnImportFromDate');
   const btnExport = document.getElementById('btnExportCsv');
@@ -1561,6 +1561,8 @@ function initScheduleEvents() {
   if (searchInput) searchInput.oninput = renderScheduleTable;
   if (filterSite) filterSite.onchange = renderScheduleTable;
   if (filterType) filterType.onchange = renderScheduleTable;
+  if (filterSubcat) filterSubcat.onchange = renderScheduleTable;
+  if (filterUtId) filterUtId.onchange = renderScheduleTable;
 
   if (btnImport) {
     btnImport.onclick = () => {
@@ -1731,6 +1733,22 @@ function initScheduleEvents() {
           }
         };
         reader.readAsDataURL(fileInput.files[0]);
+        return;
+      }
+
+      const directControl = e.target.closest('.direct-change-control');
+      if (directControl) {
+        const target = schedules.find(s => s.id === directControl.dataset.id);
+        if (target) {
+          const field = directControl.dataset.field;
+          if (field === 'utIds') {
+            target.utIds = [directControl.value];
+          } else {
+            target[field] = directControl.value;
+          }
+          saveScheduleData();
+          renderScheduleTable();
+        }
         return;
       }
 
