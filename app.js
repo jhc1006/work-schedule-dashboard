@@ -1400,6 +1400,19 @@ function getWorkTypeBadge(type) {
   }
 }
 
+function getRecommendedCategory(type, subcat) {
+  const t = (type || '').toLowerCase();
+  const s = (subcat || '').toLowerCase();
+
+  if (t.includes('자재') || s.includes('자재') || s.includes('입출고') || s.includes('부품') || s.includes('입고') || s.includes('출고') || s.includes('파렛트') || s.includes('포장') || s.includes('출하')) {
+    return '자재입출고';
+  }
+  if (t.includes('시설') || s.includes('시설') || s.includes('인프라') || s.includes('소방') || s.includes('주차') || s.includes('개선')) {
+    return '시설/인프라';
+  }
+  return '설비';
+}
+
 function renderUtBadges(selectedIds = []) {
   const ids = ensureUtIdsArray(selectedIds);
   if (ids.length === 0) return '<span class="text-placeholder">선택</span>';
@@ -1416,13 +1429,19 @@ function renderUtBadges(selectedIds = []) {
   }).join('');
 }
 
-function getSortedUtOptions(selectedIds = [], keyword = '') {
+function getSortedUtOptions(selectedIds = [], recommendedCategory = '', keyword = '') {
   const ids = ensureUtIdsArray(selectedIds);
   let list = [...ALL_TARGET_ITEMS];
+
+  if (recommendedCategory) {
+    list = list.filter(item => item.category === recommendedCategory || ids.includes(item.id));
+  }
+
   if (keyword) {
     const kw = keyword.toLowerCase();
     list = list.filter(e => (e.name || '').toLowerCase().includes(kw) || (e.id || '').toLowerCase().includes(kw));
   }
+
   return list.sort((a, b) => {
     const aChecked = ids.includes(a.id);
     const bChecked = ids.includes(b.id);
@@ -1447,10 +1466,11 @@ function getUtTriggerText(selectedIds = []) {
   return `[${escapeHtml(firstId)}] ${escapeHtml(firstName)} 외 ${ids.length - 1}건`;
 }
 
-function createUtDropdownHtml(rowId, selectedIds = []) {
+function createUtDropdownHtml(rowId, selectedIds = [], currentType = '', currentSubcat = '') {
   const ids = ensureUtIdsArray(selectedIds);
+  const recCategory = getRecommendedCategory(currentType, currentSubcat);
   const triggerText = getUtTriggerText(ids);
-  const sortedOptions = getSortedUtOptions(ids);
+  const sortedOptions = getSortedUtOptions(ids, recCategory);
 
   const optionsHtml = sortedOptions.map(e => {
     const isChecked = ids.includes(e.id);
@@ -1496,7 +1516,8 @@ function updateUtOptionsList(rowId, keyword = '') {
   if (!listContainer) return;
 
   const selectedIds = ensureUtIdsArray(row.utIds);
-  const sortedOptions = getSortedUtOptions(selectedIds, keyword);
+  const recCategory = getRecommendedCategory(row.type, row.subcat);
+  const sortedOptions = getSortedUtOptions(selectedIds, recCategory, keyword);
 
   listContainer.innerHTML = sortedOptions.map(e => {
     const isChecked = selectedIds.includes(e.id);
@@ -1651,7 +1672,7 @@ function renderScheduleTable() {
         </td>
         <td class="col-utid">
           ${isEditingUtIds ? `
-            ${createUtDropdownHtml(item.id, item.utIds)}
+            ${createUtDropdownHtml(item.id, item.utIds, item.type, item.subcat)}
           ` : `<div class="cell-text-view ut-badge-container" data-id="${item.id}" data-field="utIds" title="클릭 시 드롭다운 선택">${renderUtBadges(item.utIds)}</div>`}
         </td>
         <td class="col-content">
@@ -1958,6 +1979,19 @@ function initScheduleEvents() {
       }
     };
   }
+
+  // Close active cell edit / UT dropdown on click outside (focus-out)
+  document.addEventListener('click', (e) => {
+    if (editingCell) {
+      const isInsideDropdown = e.target.closest('.custom-ut-dropdown');
+      const isInsideEdit = e.target.closest('.edit-control');
+      const isCellView = e.target.closest('.cell-text-view');
+      if (!isInsideDropdown && !isInsideEdit && !isCellView) {
+        editingCell = null;
+        renderScheduleTable();
+      }
+    }
+  });
 }
 
 function closeScheduleModal() {
