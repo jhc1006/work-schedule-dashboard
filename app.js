@@ -49,8 +49,8 @@ const ALL_TARGET_ITEMS = [
 
 // Initial Data Sets (Includes Demo Image URLs)
 const INITIAL_SCHEDULE_DATA = [
-  { id: 'row-1', site: '서울본사', fab: 'A동 3층', type: 'PM', subcat: '정기 점검', utIds: ['EQ-HVAC-101'], content: '분기 정기 공조기 필터 점검 및 냉매 압력 계측', imageUrl: './img_hvac.jpg' },
-  { id: 'row-2', site: '판교센터', fab: '물류존 1', type: '자재입출고', subcat: '원자재 입고', utIds: ['MAT-BOX-301', 'MAT-PAL-002'], content: '신규 물류 표준 포장재 입고 검수 및 적재', imageUrl: './img_logistics.jpg' },
+  { id: 'row-1', site: '서울본사', fab: 'A동 3층', type: 'PM', subcat: '정기 점검', utIds: ['EQ-HVAC-101'], content: '분기 정기 공조기 필터 점검 및 냉매 압력 계측', imageUrl: 'https://jhc1006.github.io/work-schedule-dashboard/img_hvac.jpg' },
+  { id: 'row-2', site: '판교센터', fab: '물류존 1', type: '자재입출고', subcat: '원자재 입고', utIds: ['MAT-BOX-301', 'MAT-PAL-002'], content: '신규 물류 표준 포장재 입고 검수 및 적재', imageUrl: 'https://jhc1006.github.io/work-schedule-dashboard/img_logistics.jpg' },
   { id: 'row-3', site: '부산센터', fab: 'B동 1층', type: 'CM', subcat: '개선 개조', utIds: ['EQ-CONV-302'], content: '컨베이어 벨트 모터 교체 및 속도 제어 튜닝', imageUrl: null },
   { id: 'row-4', site: '서울본사', fab: '지하 2층', type: 'PM', subcat: '정기 점검', utIds: ['EQ-GEN-105'], content: '비상 발전기 무부하 시운전 및 배터리 점검', imageUrl: null },
   { id: 'row-5', site: '판교센터', fab: '물류존 2', type: '자재입출고', subcat: '부품 출하', utIds: ['MAT-LED-102'], content: 'LED 모듈 및 교체 부품 출고 처리', imageUrl: null }
@@ -470,10 +470,19 @@ const HISTORICAL_DATE_SCHEDULE_MAP = {
     { id: 'hist-3', site: '부산센터', fab: 'B동 2층', type: 'BM', subcat: '긴급 수리', utIds: ['EQ-PUMP-401'], content: '급수 부스터 펌프 압력 가스켓 정비 및 부품 교체', imageUrl: null }
   ],
   '2026-09-02': [
-    { id: 'hist-4', site: '서울본사', fab: 'A동 옥상', type: 'PM', subcat: '실외기 점검', utIds: ['EQ-HVAC-101'], content: '냉각탑 팬 벨트 장력 조정 및 정기 윤활유 보충', imageUrl: './img_hvac.jpg' },
-    { id: 'hist-5', site: '대구센터', fab: '물류 1존', type: '자재입출고', subcat: '자재 입고', utIds: ['MAT-TAP-005'], content: '포장용 박스 밴딩 끈 100롤 입고 검수 및 하역', imageUrl: './img_logistics.jpg' }
+    { id: 'hist-4', site: '서울본사', fab: 'A동 옥상', type: 'PM', subcat: '실외기 점검', utIds: ['EQ-HVAC-101'], content: '냉각탑 팬 벨트 장력 조정 및 정기 윤활유 보충', imageUrl: 'https://jhc1006.github.io/work-schedule-dashboard/img_hvac.jpg' },
+    { id: 'hist-5', site: '대구센터', fab: '물류 1존', type: '자재입출고', subcat: '자재 입고', utIds: ['MAT-TAP-005'], content: '포장용 박스 밴딩 끈 100롤 입고 검수 및 하역', imageUrl: 'https://jhc1006.github.io/work-schedule-dashboard/img_logistics.jpg' }
   ]
 };
+
+function resolveAbsoluteImageUrl(url) {
+  if (!url) return null;
+  if (url.startsWith('data:image') || url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const cleanPath = url.replace(/^\.\//, '');
+  return `https://jhc1006.github.io/work-schedule-dashboard/${cleanPath}`;
+}
 
 function getHistoricalTasksForDate(dateStr) {
   if (HISTORICAL_DATE_SCHEDULE_MAP[dateStr]) {
@@ -588,9 +597,11 @@ function closeImportModal() {
 // ==========================================================================
 function initIntegratedExportEvents() {
   const btnExportExcel = document.getElementById('btnExportIntegratedExcel');
+  const btnExportWebSquare = document.getElementById('btnExportWebSquareExcel');
   const btnExportPdf = document.getElementById('btnExportIntegratedPdf');
 
   if (btnExportExcel) btnExportExcel.addEventListener('click', exportIntegratedExcel);
+  if (btnExportWebSquare) btnExportWebSquare.addEventListener('click', exportWebSquareAdvancedExcel);
   if (btnExportPdf) btnExportPdf.addEventListener('click', exportIntegratedPdf);
 }
 
@@ -694,8 +705,9 @@ function exportIntegratedExcel() {
   // Append Schedule Data (Includes Embedded Image)
   schedules.forEach(s => {
     const targets = (s.utIds || []).join(', ');
-    const imgCellHtml = s.imageUrl 
-      ? `<img src="${s.imageUrl}" width="60" height="60" style="vertical-align:middle; border-radius:4px;"><br><small style="font-size:8pt; color:#15803d; font-weight:bold;">[📷 현장사진 첨부]</small>` 
+    const absImgUrl = resolveAbsoluteImageUrl(s.imageUrl);
+    const imgCellHtml = absImgUrl 
+      ? `<img src="${absImgUrl}" width="60" height="60" style="vertical-align:middle; border-radius:4px;"><br><small style="font-size:8pt; color:#15803d; font-weight:bold;">[📷 현장사진 첨부]</small>` 
       : '<span style="color:#94a3b8;">[미첨부]</span>';
     htmlExcel += `
       <tr>
@@ -880,6 +892,260 @@ function exportIntegratedPdf() {
 }
 
 // ==========================================================================
+// 5.1 WEBSQUARE advancedExcelDownload(options, infoArr) CONTROLLER
+// ==========================================================================
+function exportWebSquareAdvancedExcel() {
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const memoText = globalNotice && globalNotice.text ? globalNotice.text : '등록된 전달사항 없음';
+
+  // 1. 엑셀 기본 설정 및 파일명 정의 (WebSquare Standard)
+  var options = {
+    fileName: "시설_물류_근태_종합_운영_관제_보고서.xlsx",
+    sheetName: "통합 1시트",
+    type: "1",               // 화면에 보이는 데이터 기준
+    useHeader: true,
+    useFooter: true,
+    startRowIndex: 7         // 첫 번째 그리드(grid1)가 시작될 엑셀 행 번호
+  };
+
+  // 2. infoArr 배열 생성 (타이틀, 섹션명, textarea/전달사항 데이터 및 서브 그리드 배치 포함)
+  var infoArr = [];
+
+  // ① 메인 타이틀 (0행)
+  infoArr.push({
+    rowIndex: 0,
+    colIndex: 0,
+    rowSpan: 1,
+    colSpan: 8,
+    text: "시설·물류·근태 종합 운영 관제 보고서 (통합 1시트)",
+    textAlign: "center",
+    fontWeight: "bold",
+    fontSize: "14px",
+    bgColor: "#DBEEF3",
+    drawBorder: true
+  });
+
+  // ② 발행 일시 및 시스템 정보 (1행)
+  infoArr.push({
+    rowIndex: 1,
+    colIndex: 0,
+    rowSpan: 1,
+    colSpan: 8,
+    text: `발행 일시: ${dateStr} ${timeStr} | 통합 센터 관제 시스템`,
+    textAlign: "center",
+    fontSize: "9px",
+    drawBorder: true
+  });
+
+  // ③ [근무 전달사항 / 공지사항] 영역 제목 삽입 (3행)
+  infoArr.push({
+    rowIndex: 3,
+    colIndex: 0,
+    text: "■ 근무 전달사항 및 실시간 공지사항",
+    fontWeight: "bold",
+    fontSize: "11px"
+  });
+
+  // ④ TextArea에 입력된 실제 데이터 가져오기 및 infoArr 추가 (4~5행)
+  infoArr.push({
+    rowIndex: 4,
+    colIndex: 0,
+    rowSpan: 2,              // 2개 행 확보
+    colSpan: 8,              // 그리드 전체 폭에 맞추어 병합
+    text: memoText,
+    textAlign: "left",
+    verticalAlign: "top",    // 상단 정렬
+    fontSize: "10px",
+    wordWrap: "true",        // 셀 내부 줄바꿈 활성화
+    bgColor: "#F9F9F9",      // 영역 구분을 위한 배경색
+    drawBorder: true         // 테두리 박스 처리
+  });
+
+  // ⑤ 첫 번째 섹션 제목 ("1. 근태현황") (7행 위치)
+  infoArr.push({
+    rowIndex: 7,
+    colIndex: 0,
+    text: "1. 근태현황 (Attendance Management Status)",
+    fontWeight: "bold",
+    fontSize: "11px"
+  });
+
+  // 3. 첫 번째 그리드(grid1) 데이터 행 수 계산을 통한 동적 위치 산출
+  var grid1TotalRows = (typeof attendances !== 'undefined') ? attendances.length : 5;
+  var startRowForGrid2 = 7 + 1 + grid1TotalRows + 4;
+
+  // ⑥ 두 번째 섹션 제목 ("2. 작업일정관리") 삽입
+  infoArr.push({
+    rowIndex: startRowForGrid2 - 2,
+    colIndex: 0,
+    text: "2. 작업일정관리 (Work Schedule Management)",
+    fontWeight: "bold",
+    fontSize: "11px"
+  });
+
+  // ⑦ 두 번째 그리드(grid2) 영역 설정을 infoArr에 추가
+  infoArr.push({
+    rowIndex: startRowForGrid2,
+    colIndex: 0,
+    targetGrid: 'grid2_schedule',
+    useHeader: true,
+    useFooter: false
+  });
+
+  // native WebSquare grid1 object check
+  if (window.grid1 && typeof window.grid1.advancedExcelDownload === 'function') {
+    window.grid1.advancedExcelDownload(options, infoArr);
+    return;
+  }
+
+  // WebSquare5 browser simulator: Synthesize HTML Excel file matching infoArr & trigger download
+  buildAndDownloadWebSquareInfoArrExcel(options, infoArr, dateStr, timeStr);
+}
+
+function buildAndDownloadWebSquareInfoArrExcel(options, infoArr, dateStr, timeStr) {
+  const noticeAuthor = globalNotice && globalNotice.author ? globalNotice.author : '관리자';
+  const noticeTime = globalNotice && globalNotice.timestamp ? globalNotice.timestamp : dateStr;
+  const memoText = globalNotice && globalNotice.text ? globalNotice.text : '등록된 전달사항 없음';
+
+  let htmlExcel = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <!--[if gte mso 9]>
+      <xml>
+        <x:ExcelWorkbook>
+          <x:ExcelWorksheets>
+            <x:ExcelWorksheet>
+              <x:Name>${options.sheetName || '통합 1시트'}</x:Name>
+              <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+            </x:ExcelWorksheet>
+          </x:ExcelWorksheets>
+        </x:ExcelWorkbook>
+      </xml>
+      <![endif]-->
+      <style>
+        table { border-collapse: collapse; font-family: "맑은 고딕", Arial, sans-serif; font-size: 11pt; }
+        th { background-color: #0f172a; color: #ffffff; font-weight: bold; border: 1px solid #64748b; padding: 6px 10px; text-align: center; }
+        td { border: 1px solid #cbd5e1; padding: 6px 10px; vertical-align: middle; }
+        .ws-title-cell { font-size: 14pt; font-weight: bold; background-color: #DBEEF3; color: #0f172a; height: 35px; border: 1px solid #94a3b8; text-align: center; }
+        .ws-sub-cell { font-size: 9pt; color: #475569; border: 1px solid #cbd5e1; text-align: center; }
+        .ws-section-title { font-weight: bold; font-size: 11pt; color: #0f172a; }
+        .ws-memo-box { background-color: #F9F9F9; border: 1px solid #cbd5e1; font-size: 10pt; vertical-align: top; white-space: pre-wrap; }
+        .badge-cell { text-align: center; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <table>
+        <!-- Row 0: Title -->
+        <tr><td colspan="8" class="ws-title-cell">시설·물류·근태 종합 운영 관제 보고서 (WebSquare infoArr 통합 1시트)</td></tr>
+        <!-- Row 1: Subtitle -->
+        <tr><td colspan="8" class="ws-sub-cell">발행 일시: ${dateStr} ${timeStr} | 시스템: WebSquare5 Advanced Excel Download Controller</td></tr>
+        <!-- Row 2: Empty Spacer -->
+        <tr><td colspan="8" style="border:none; height:12px;"></td></tr>
+
+        <!-- Row 3: Notice Title -->
+        <tr><td colspan="8" class="ws-section-title">■ 근무 전달사항 및 실시간 공지사항 (TextArea Component Data)</td></tr>
+        <!-- Row 4-5: Notice TextArea Box -->
+        <tr>
+          <td colspan="8" rowspan="2" class="ws-memo-box">
+            <strong>[작성자: ${escapeHtml(noticeAuthor)} / ${escapeHtml(noticeTime)}]</strong><br>
+            ${escapeHtml(memoText).replace(/\n/g, '<br>')}
+          </td>
+        </tr>
+        <tr></tr>
+        <!-- Row 6: Spacer -->
+        <tr><td colspan="8" style="border:none; height:12px;"></td></tr>
+
+        <!-- Row 7: Section 1 Header (Grid 1: Attendance) -->
+        <tr><td colspan="8" class="ws-section-title">1. 근태현황 (Attendance Management Status) - Grid1</td></tr>
+        <tr>
+          <th>사원번호</th>
+          <th>성명</th>
+          <th>부서</th>
+          <th>직급 / 사업장</th>
+          <th>출근시간</th>
+          <th>퇴근시간</th>
+          <th>근태상태</th>
+          <th>비고 및 특이사항</th>
+        </tr>
+  `;
+
+  // Grid 1 Data Rows (Attendance)
+  (attendances || []).forEach(a => {
+    htmlExcel += `
+      <tr>
+        <td align="center">${escapeHtml(a.empId)}</td>
+        <td align="center">${escapeHtml(a.name)}</td>
+        <td align="center">${escapeHtml(a.dept)}</td>
+        <td>${escapeHtml(a.position)}</td>
+        <td align="center">${escapeHtml(a.clockIn)}</td>
+        <td align="center">${escapeHtml(a.clockOut)}</td>
+        <td class="badge-cell">${escapeHtml(a.status)}</td>
+        <td>${escapeHtml(a.remarks)}</td>
+      </tr>
+    `;
+  });
+
+  htmlExcel += `
+        <!-- Dynamic Row Spacer calculated by Grid1 rows count -->
+        <tr><td colspan="8" style="border:none; height:16px;"></td></tr>
+
+        <!-- Section 2 Header (Grid 2: Work Schedule - targetGrid via infoArr) -->
+        <tr><td colspan="8" class="ws-section-title">2. 작업일정관리 (Work Schedule Management) - Grid2 (targetGrid)</td></tr>
+        <tr>
+          <th>Site</th>
+          <th>구역/Zone</th>
+          <th>작업유형</th>
+          <th>작업구분</th>
+          <th>작업대상</th>
+          <th>작업 상세 내용</th>
+          <th colspan="2">작업 현장 이미지</th>
+        </tr>
+  `;
+
+  // Grid 2 Data Rows (Schedule)
+  (schedules || []).forEach(s => {
+    const targets = (s.utIds || []).join(', ');
+    const absImgUrl = resolveAbsoluteImageUrl(s.imageUrl);
+    const imgCellHtml = absImgUrl 
+      ? `<img src="${absImgUrl}" width="60" height="60" style="vertical-align:middle; border-radius:4px;"><br><small style="font-size:8pt; color:#15803d; font-weight:bold;">[📷 현장사진 첨부]</small>` 
+      : '<span style="color:#94a3b8;">[미첨부]</span>';
+    htmlExcel += `
+      <tr>
+        <td align="center">${escapeHtml(s.site)}</td>
+        <td align="center">${escapeHtml(s.fab)}</td>
+        <td class="badge-cell">${escapeHtml(s.type)}</td>
+        <td align="center">${escapeHtml(s.subcat)}</td>
+        <td>${escapeHtml(targets)}</td>
+        <td>${escapeHtml(s.content)}</td>
+        <td colspan="2" align="center" style="height:70px;">${imgCellHtml}</td>
+      </tr>
+    `;
+  });
+
+  htmlExcel += `
+      </table>
+    </body>
+    </html>
+  `;
+
+  // Download Trigger
+  const blob = new Blob(['\uFEFF' + htmlExcel], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = options.fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  alert(`[WebSquare5 advancedExcelDownload] infoArr 통합 엑셀 다운로드가 완료되었습니다!\n\n• 파일명: ${options.fileName}\n• 시트명: ${options.sheetName}\n• infoArr 적용: 메인 타이틀(0행), TextArea 공지사항(4행), 근태 그리드(7행), 작업일정 서브 그리드(동적 행 index) 합성 완료`);
+}
+
+// ==========================================================================
 // 6. GLOBAL NOTICE & SEARCH CONTROLLER
 // ==========================================================================
 function initNoticeEvents() {
@@ -980,6 +1246,32 @@ function getGlobalSearchState() {
 // ==========================================================================
 // 7. ATTENDANCE CONTROLLER
 // ==========================================================================
+let draggedAttId = null;
+
+function showToast(message) {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.className = 'toast-item';
+  toast.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+    </svg>
+    <span>${escapeHtml(message)}</span>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => { toast.classList.add('show'); }, 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3200);
+}
+
 function initAttendanceEvents() {
   const statusFilter = document.getElementById('attendanceStatusFilter');
   const deptFilter = document.getElementById('attendanceDeptFilter');
@@ -1062,6 +1354,85 @@ function initAttendanceEvents() {
         renderAttendanceTable();
       }
     });
+
+    // Drag & Drop event handlers for employee swapping
+    tbody.addEventListener('dragstart', (e) => {
+      if (e.target.closest('input, select, button, .att-edit-control')) {
+        e.preventDefault();
+        return;
+      }
+      const tr = e.target.closest('tr.att-row-item');
+      if (!tr) return;
+      draggedAttId = tr.dataset.id;
+      tr.classList.add('dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedAttId);
+      }
+    });
+
+    tbody.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const tr = e.target.closest('tr.att-row-item');
+      if (!tr || tr.dataset.id === draggedAttId) return;
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+
+      tbody.querySelectorAll('tr.drag-over').forEach(r => {
+        if (r !== tr) r.classList.remove('drag-over');
+      });
+      tr.classList.add('drag-over');
+    });
+
+    tbody.addEventListener('dragleave', (e) => {
+      const tr = e.target.closest('tr.att-row-item');
+      if (tr) tr.classList.remove('drag-over');
+    });
+
+    tbody.addEventListener('drop', (e) => {
+      e.preventDefault();
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over', 'dragging'));
+
+      const targetTr = e.target.closest('tr.att-row-item');
+      if (!targetTr || !draggedAttId) return;
+      const targetId = targetTr.dataset.id;
+      if (draggedAttId === targetId) return;
+
+      const sourceIdx = attendances.findIndex(a => a.id === draggedAttId);
+      const targetIdx = attendances.findIndex(a => a.id === targetId);
+
+      if (sourceIdx !== -1 && targetIdx !== -1) {
+        const sourceName = attendances[sourceIdx].name;
+        const targetName = attendances[targetIdx].name;
+
+        // Swap position in attendances array
+        const temp = attendances[sourceIdx];
+        attendances[sourceIdx] = attendances[targetIdx];
+        attendances[targetIdx] = temp;
+
+        saveAttendanceData();
+        renderAttendanceTable();
+
+        showToast(`👥 [${sourceName}] ↔ [${targetName}] 사원의 근태 순서가 교체되었습니다.`);
+
+        const updatedTbody = document.getElementById('attendanceTableBody');
+        if (updatedTbody) {
+          const row1 = updatedTbody.querySelector(`tr[data-id="${draggedAttId}"]`);
+          const row2 = updatedTbody.querySelector(`tr[data-id="${targetId}"]`);
+          if (row1) row1.classList.add('just-swapped');
+          if (row2) row2.classList.add('just-swapped');
+          setTimeout(() => {
+            if (row1) row1.classList.remove('just-swapped');
+            if (row2) row2.classList.remove('just-swapped');
+          }, 1500);
+        }
+      }
+      draggedAttId = null;
+    });
+
+    tbody.addEventListener('dragend', () => {
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over', 'dragging'));
+      draggedAttId = null;
+    });
   }
 }
 
@@ -1124,13 +1495,18 @@ function renderAttendanceTable() {
   tbody.innerHTML = '';
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted);">조회된 근태 기록이 없습니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:30px; color:var(--text-muted);">조회된 근태 기록이 없습니다.</td></tr>`;
     updateAttendanceKpis();
     return;
   }
 
-  filtered.forEach(item => {
+  filtered.forEach((item, index) => {
     const tr = document.createElement('tr');
+    tr.setAttribute('draggable', 'true');
+    tr.className = 'att-row-item';
+    tr.dataset.id = item.id;
+    tr.dataset.index = index;
+
     const isChecked = selectedAttendanceRowIds.has(item.id);
     const isEditingStatus = editingAttendanceCell && editingAttendanceCell.rowId === item.id && editingAttendanceCell.field === 'status';
     const isEditingIn = editingAttendanceCell && editingAttendanceCell.rowId === item.id && editingAttendanceCell.field === 'clockIn';
@@ -1138,6 +1514,13 @@ function renderAttendanceTable() {
     const isEditingRemarks = editingAttendanceCell && editingAttendanceCell.rowId === item.id && editingAttendanceCell.field === 'remarks';
 
     tr.innerHTML = `
+      <td class="col-drag center drag-handle" title="드래그하여 사원 순서 교체">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="9" cy="5" r="1.5" fill="currentColor"/><circle cx="15" cy="5" r="1.5" fill="currentColor"/>
+          <circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/>
+          <circle cx="9" cy="19" r="1.5" fill="currentColor"/><circle cx="15" cy="19" r="1.5" fill="currentColor"/>
+        </svg>
+      </td>
       <td class="col-select center"><input type="checkbox" class="att-row-checkbox" data-id="${item.id}" ${isChecked ? 'checked' : ''}></td>
       <td><strong>${escapeHtml(item.empId)}</strong></td>
       <td>${escapeHtml(item.name)}</td>

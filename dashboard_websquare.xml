@@ -72,8 +72,8 @@
                 ]);
 
                 dlt_schedule.setJSON([
-                    { site: "서울본사", fab: "A동 3층", type: "PM", subcat: "정기 점검", utIds: "EQ-HVAC-101", content: "공조기 필터 점검 및 냉매 계측", imageUrl: "./img_hvac.jpg" },
-                    { site: "판교센터", fab: "물류존 1", type: "자재입출고", subcat: "원자재 입고", utIds: "MAT-BOX-301", content: "표준 포장재 입고 검수 및 적재", imageUrl: "./img_logistics.jpg" }
+                    { site: "서울본사", fab: "A동 3층", type: "PM", subcat: "정기 점검", utIds: "EQ-HVAC-101", content: "공조기 필터 점검 및 냉매 계측", imageUrl: "https://jhc1006.github.io/work-schedule-dashboard/img_hvac.jpg" },
+                    { site: "판교센터", fab: "물류존 1", type: "자재입출고", subcat: "원자재 입고", utIds: "MAT-BOX-301", content: "표준 포장재 입고 검수 및 적재", imageUrl: "https://jhc1006.github.io/work-schedule-dashboard/img_logistics.jpg" }
                 ]);
 
                 dlt_material.setJSON([

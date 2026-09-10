@@ -12,6 +12,7 @@
                 <w2:caption label="근태현황 그리드"></w2:caption>
                 <w2:header>
                     <w2:row>
+                        <w2:column id="col_drag" label="이동"></w2:column>
                         <w2:column id="col_empId" label="사원번호"></w2:column>
                         <w2:column id="col_name" label="성명"></w2:column>
                         <w2:column id="col_dept" label="부서"></w2:column>
@@ -24,6 +25,7 @@
                 </w2:header>
                 <w2:gBody>
                     <w2:row>
+                        <w2:column id="drag" inputType="text" defaultValue="⠿"></w2:column>
                         <w2:column id="empId" inputType="text"></w2:column>
                         <w2:column id="name" inputType="text"></w2:column>
                         <w2:column id="dept" inputType="text"></w2:column>
